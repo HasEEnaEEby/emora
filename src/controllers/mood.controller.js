@@ -1,6 +1,6 @@
 import moodService from '../services/mood.service.js';
 import { handleAsync } from '../utils/helpers.js';
-import { errorResponse, successResponse } from '../utils/response.js';
+import { sendError, sendSuccess } from '../utils/response.js';
 
 class MoodController {
   createMood = handleAsync(async (req, res) => {

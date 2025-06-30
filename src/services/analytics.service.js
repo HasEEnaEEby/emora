@@ -1,7 +1,16 @@
-import { getEmotionCategory, getEmotionColor } from '../constants/emotions.js';
+// src/services/analytics.service.js - Fixed version
+import { getCoreEmotion, getEmotionColor } from '../constants/emotions.js';
 import Mood from '../models/mood.model.js';
-import cacheService from '../utils/cache.js';
 import logger from '../utils/logger.js';
+
+// Import cache service with error handling
+let cacheService = null;
+try {
+  const cacheModule = await import('../utils/cache.js');
+  cacheService = cacheModule.default;
+} catch (error) {
+  logger.warn('⚠️ Cache service not available, using in-memory fallback');
+}
 
 class AnalyticsService {
   async getUserAnalytics(userId, options = {}) {
@@ -15,8 +24,10 @@ class AnalyticsService {
     
     try {
       // Check cache first
-      const cached = await cacheService.get(cacheKey);
-      if (cached) return cached;
+      if (cacheService?.get) {
+        const cached = await cacheService.get(cacheKey);
+        if (cached) return cached;
+      }
 
       const timeFilter = this.getTimeFilter(period);
       const startDate = timeFilter.createdAt.$gte;
@@ -61,7 +72,9 @@ class AnalyticsService {
       };
 
       // Cache for 15 minutes
-      await cacheService.set(cacheKey, result, 900);
+      if (cacheService?.set) {
+        await cacheService.set(cacheKey, result, 900);
+      }
       
       return result;
     } catch (error) {
@@ -76,10 +89,12 @@ class AnalyticsService {
     const locationCounts = {};
     const timePatterns = {};
     const dailyData = {};
+    const coreEmotionCounts = {};
 
     // Process each mood
     moods.forEach(mood => {
       const emotion = mood.emotion;
+      const coreEmotion = getCoreEmotion(emotion); // Use getCoreEmotion instead of getEmotionCategory
       const date = mood.createdAt.toISOString().split('T')[0];
       const timeOfDay = mood.context.timeOfDay;
       const location = `${mood.location.city}, ${mood.location.country}`;
@@ -87,6 +102,9 @@ class AnalyticsService {
       // Emotion stats
       emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
       intensitySum[emotion] = (intensitySum[emotion] || 0) + mood.intensity;
+
+      // Core emotion stats (Inside Out style)
+      coreEmotionCounts[coreEmotion] = (coreEmotionCounts[coreEmotion] || 0) + 1;
 
       // Location stats
       locationCounts[location] = (locationCounts[location] || 0) + 1;
@@ -104,6 +122,7 @@ class AnalyticsService {
       }
       dailyData[date].moods.push({
         emotion,
+        coreEmotion,
         intensity: mood.intensity,
         time: mood.createdAt
       });
@@ -118,7 +137,16 @@ class AnalyticsService {
       percentage: Math.round((count / moods.length) * 100),
       avgIntensity: Math.round((intensitySum[emotion] / count) * 100) / 100,
       color: getEmotionColor(emotion),
-      category: getEmotionCategory(emotion)
+      coreEmotion: getCoreEmotion(emotion), // Use getCoreEmotion instead of getEmotionCategory
+      category: this.getEmotionCategory(getCoreEmotion(emotion)) // Helper method for category
+    })).sort((a, b) => b.count - a.count);
+
+    // Calculate core emotion breakdown (Inside Out style)
+    const coreEmotionBreakdown = Object.entries(coreEmotionCounts).map(([coreEmotion, count]) => ({
+      coreEmotion,
+      count,
+      percentage: Math.round((count / moods.length) * 100),
+      category: this.getEmotionCategory(coreEmotion)
     })).sort((a, b) => b.count - a.count);
 
     // Calculate mood score
@@ -144,6 +172,7 @@ class AnalyticsService {
 
     return {
       emotionBreakdown,
+      coreEmotionBreakdown, // Add Inside Out breakdown
       moodScore,
       dailyStats,
       patterns: {
@@ -155,6 +184,7 @@ class AnalyticsService {
       streaks,
       summary: {
         dominantEmotion: emotionBreakdown[0],
+        dominantCoreEmotion: coreEmotionBreakdown[0], // Add dominant core emotion
         averageIntensity: Math.round((moods.reduce((sum, m) => sum + m.intensity, 0) / moods.length) * 100) / 100,
         totalDays: Object.keys(dailyData).length,
         avgMoodsPerDay: Math.round((moods.length / Object.keys(dailyData).length) * 100) / 100
@@ -162,15 +192,39 @@ class AnalyticsService {
     };
   }
 
+  // Helper method to categorize emotions as positive/negative/neutral
+  getEmotionCategory(coreEmotion) {
+    const categories = {
+      'joy': 'positive',
+      'sadness': 'negative',
+      'anger': 'negative',
+      'fear': 'negative',
+      'disgust': 'negative'
+    };
+    return categories[coreEmotion] || 'neutral';
+  }
+
   calculateMoodScore(emotionBreakdown) {
+    // Updated to work with core emotions
     const emotionWeights = {
-      happy: 90,
-      excited: 85,
-      calm: 80,
-      bored: 50,
-      anxious: 30,
-      sad: 20,
-      angry: 10
+      // Joy family
+      'happy': 90, 'joyful': 90, 'excited': 85, 'cheerful': 85, 'delighted': 90,
+      'content': 80, 'satisfied': 80, 'grateful': 85, 'proud': 85,
+      
+      // Neutral emotions
+      'calm': 70, 'peaceful': 75, 'relaxed': 75, 'bored': 50, 'tired': 45,
+      
+      // Negative emotions - Sadness
+      'sad': 20, 'depressed': 15, 'lonely': 25, 'heartbroken': 10, 'melancholy': 30,
+      
+      // Negative emotions - Anger
+      'angry': 15, 'furious': 10, 'frustrated': 25, 'annoyed': 35, 'irritated': 30,
+      
+      // Negative emotions - Fear
+      'anxious': 25, 'worried': 30, 'scared': 20, 'nervous': 35, 'stressed': 20,
+      
+      // Negative emotions - Disgust
+      'disgusted': 20, 'revolted': 15, 'appalled': 20
     };
 
     let score = 0;
@@ -191,6 +245,7 @@ class AnalyticsService {
     const streaks = [];
     let currentStreak = {
       emotion: null,
+      coreEmotion: null,
       days: 0,
       startDate: null,
       endDate: null
@@ -200,9 +255,9 @@ class AnalyticsService {
       const dominantEmotion = day.moods.reduce((prev, current) => 
         day.moods.filter(m => m.emotion === current.emotion).length >
         day.moods.filter(m => m.emotion === prev.emotion).length ? current : prev
-      ).emotion;
+      );
 
-      if (currentStreak.emotion === dominantEmotion) {
+      if (currentStreak.emotion === dominantEmotion.emotion) {
         currentStreak.days++;
         currentStreak.endDate = day.date;
       } else {
@@ -210,7 +265,8 @@ class AnalyticsService {
           streaks.push({ ...currentStreak });
         }
         currentStreak = {
-          emotion: dominantEmotion,
+          emotion: dominantEmotion.emotion,
+          coreEmotion: dominantEmotion.coreEmotion,
           days: 1,
           startDate: day.date,
           endDate: day.date
@@ -251,10 +307,31 @@ class AnalyticsService {
       });
     }
 
+    // Core emotion insights (Inside Out style)
+    if (analytics.coreEmotionBreakdown && analytics.coreEmotionBreakdown[0]) {
+      const dominantCore = analytics.coreEmotionBreakdown[0];
+      if (dominantCore.percentage > 60) {
+        const messages = {
+          'joy': `Joy is your dominant emotion (${dominantCore.percentage}%)! You're experiencing a lot of positive moments.`,
+          'sadness': `Sadness has been dominant (${dominantCore.percentage}%). Remember that sadness helps us process and can lead to growth.`,
+          'anger': `Anger has been prominent (${dominantCore.percentage}%). Consider healthy ways to channel this energy.`,
+          'fear': `Fear has been dominant (${dominantCore.percentage}%). You might be facing challenges - that's completely normal.`,
+          'disgust': `You've been experiencing a lot of disgust (${dominantCore.percentage}%). This might indicate you're maintaining high standards.`
+        };
+        
+        insights.push({
+          type: 'core_emotion_dominant',
+          message: messages[dominantCore.coreEmotion] || `${dominantCore.coreEmotion} has been your dominant emotion.`,
+          category: dominantCore.coreEmotion === 'joy' ? 'positive' : 'neutral',
+          priority: 4
+        });
+      }
+    }
+
     // Streak insights
     if (analytics.streaks.current && analytics.streaks.current.days >= 7) {
       const emotion = analytics.streaks.current.emotion;
-      const category = getEmotionCategory(emotion);
+      const category = this.getEmotionCategory(analytics.streaks.current.coreEmotion);
       
       if (category === 'positive') {
         insights.push({
@@ -293,6 +370,17 @@ class AnalyticsService {
       });
     }
 
+    // Emotional variety insight
+    const emotionVariety = analytics.emotionBreakdown.length;
+    if (emotionVariety >= 10) {
+      insights.push({
+        type: 'emotional_variety',
+        message: `You've experienced ${emotionVariety} different emotions. This shows healthy emotional awareness and range.`,
+        category: 'positive',
+        priority: 3
+      });
+    }
+
     return insights.sort((a, b) => b.priority - a.priority);
   }
 
@@ -319,7 +407,69 @@ class AnalyticsService {
       });
     }
 
-    // Anxiety specific recommendations
+    // Core emotion specific recommendations
+    if (analytics.coreEmotionBreakdown && analytics.coreEmotionBreakdown[0]) {
+      const dominant = analytics.coreEmotionBreakdown[0];
+      
+      if (dominant.coreEmotion === 'sadness' && dominant.percentage > 40) {
+        recommendations.push({
+          type: 'sadness_support',
+          title: 'Processing Sadness',
+          description: 'Sadness is a natural emotion. These activities can help you process it healthily.',
+          category: 'mindfulness',
+          priority: 4,
+          data: {
+            activities: [
+              'Journal about your feelings',
+              'Listen to music that matches your mood',
+              'Reach out to a trusted friend',
+              'Practice self-compassion meditation',
+              'Allow yourself to feel without judgment'
+            ]
+          }
+        });
+      }
+      
+      if (dominant.coreEmotion === 'anger' && dominant.percentage > 30) {
+        recommendations.push({
+          type: 'anger_management',
+          title: 'Healthy Anger Expression',
+          description: 'Channel your anger energy in positive ways',
+          category: 'activity',
+          priority: 4,
+          data: {
+            techniques: [
+              'Physical exercise or sports',
+              'Write in a journal',
+              'Practice deep breathing',
+              'Go for a brisk walk',
+              'Talk to someone you trust'
+            ]
+          }
+        });
+      }
+      
+      if (dominant.coreEmotion === 'fear' && dominant.percentage > 30) {
+        recommendations.push({
+          type: 'fear_management',
+          title: 'Building Confidence',
+          description: 'These techniques can help you feel more secure and confident',
+          category: 'mindfulness',
+          priority: 4,
+          data: {
+            techniques: [
+              'Practice grounding exercises (5-4-3-2-1)',
+              'Break big challenges into smaller steps',
+              'Create a daily routine for stability',
+              'Practice positive self-talk',
+              'Connect with supportive people'
+            ]
+          }
+        });
+      }
+    }
+
+    // Anxiety specific recommendations (legacy support)
     const anxietyPercentage = analytics.emotionBreakdown.find(e => e.emotion === 'anxious')?.percentage || 0;
     if (anxietyPercentage > 30) {
       recommendations.push({
@@ -351,6 +501,7 @@ class AnalyticsService {
         priority: 3,
         data: {
           emotion: dominantEmotion.emotion,
+          coreEmotion: dominantEmotion.coreEmotion,
           playlistType: dominantEmotion.category === 'negative' ? 'uplifting' : 'matching'
         }
       });

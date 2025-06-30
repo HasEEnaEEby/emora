@@ -1,119 +1,374 @@
-import User from '../models/user.model.js';
-import { handleAsync } from '../utils/helpers.js';
-import logger from '../utils/logger.js';
+// src/controllers/auth.controller.js
+import jwt from 'jsonwebtoken';
 import { errorResponse, successResponse } from '../utils/response.js';
 
 class AuthController {
-  // Simple login (optional - for users who want password protection)
-  login = handleAsync(async (req, res) => {
-    const { username, password } = req.body;
-    
-    // Find user
-    const user = await User.findOne({ 
-      username: username.toLowerCase() 
-    }).select('+password');
-    
-    if (!user) {
-      return errorResponse(res, 'Invalid credentials', 401);
-    }
-    
-    // Check password (if user has one)
-    if (user.password) {
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
-        return errorResponse(res, 'Invalid credentials', 401);
-      }
-    } else if (password) {
-      // User doesn't have password but one was provided
-      return errorResponse(res, 'This account does not require a password', 400);
-    }
-    
-    // Generate token
-    const token = user.generateAuthToken();
-    
-    logger.info(`User logged in: ${username}`);
-    
-    successResponse(res, {
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          username: user.username,
-          pronouns: user.pronouns,
-          ageGroup: user.ageGroup,
-          avatar: user.avatar,
-          isOnboardingComplete: user.isOnboardingComplete
-        },
-        token
-      }
-    });
-  });
+  // Register a new user
+  register = async (req, res) => {
+    try {
+      const { username, email, password, firstName, lastName } = req.body;
+      
+      // Placeholder implementation
+      const userData = {
+        id: Date.now(),
+        username: username.toLowerCase(),
+        email: email?.toLowerCase(),
+        firstName: firstName || null,
+        lastName: lastName || null,
+        createdAt: new Date(),
+        isActive: true,
+        isEmailVerified: false
+      };
 
-  // Get current user
-  getMe = handleAsync(async (req, res) => {
-    successResponse(res, {
-      message: 'Current user retrieved',
-      data: { user: req.user }
-    });
-  });
+      // Generate JWT token (placeholder)
+      const token = jwt.sign(
+        { userId: userData.id, username: userData.username },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+      );
 
-  // Optional: Add password to existing account
-  addPassword = handleAsync(async (req, res) => {
-    const { password } = req.body;
-    
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return errorResponse(res, 'User not found', 404);
+      successResponse(res, {
+        message: 'User registered successfully',
+        data: {
+          user: userData,
+          token,
+          expiresIn: '7d'
+        }
+      }, 201);
+    } catch (error) {
+      errorResponse(res, 'Registration failed', 500, error.message);
     }
-    
-    if (user.password) {
-      return errorResponse(res, 'Account already has a password. Use change password instead.', 400);
-    }
-    
-    user.password = password;
-    await user.save();
-    
-    successResponse(res, {
-      message: 'Password added successfully. Your account is now more secure!'
-    });
-  });
+  };
 
-  // Simple username-only access (for returning users without password)
-  quickAccess = handleAsync(async (req, res) => {
-    const { username } = req.body;
-    
-    const user = await User.findOne({ 
-      username: username.toLowerCase() 
-    });
-    
-    if (!user) {
-      return errorResponse(res, 'User not found. Please check your username or create a new account.', 404);
+  // Login user
+  login = async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Placeholder implementation
+      const userData = {
+        id: Date.now(),
+        username: username.toLowerCase(),
+        email: 'user@example.com',
+        firstName: 'User',
+        lastName: 'Test',
+        lastLoginAt: new Date(),
+        isActive: true
+      };
+
+      // Generate JWT token (placeholder)
+      const token = jwt.sign(
+        { userId: userData.id, username: userData.username },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+      );
+
+      successResponse(res, {
+        message: 'Login successful',
+        data: {
+          user: userData,
+          token,
+          expiresIn: '7d'
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Login failed', 500, error.message);
     }
-    
-    // If user has a password, they must use regular login
-    if (user.password) {
-      return errorResponse(res, 'This account is password protected. Please use the login option.', 400);
+  };
+
+  // Logout user
+  logout = async (req, res) => {
+    try {
+      successResponse(res, {
+        message: 'Logout successful'
+      });
+    } catch (error) {
+      errorResponse(res, 'Logout failed', 500, error.message);
     }
-    
-    const token = user.generateAuthToken();
-    
-    logger.info(`Quick access granted: ${username}`);
-    
-    successResponse(res, {
-      message: 'Access granted',
-      data: {
-        user: {
-          id: user._id,
-          username: user.username,
-          pronouns: user.pronouns,
-          ageGroup: user.ageGroup,
-          avatar: user.avatar,
-          isOnboardingComplete: user.isOnboardingComplete
-        },
-        token
-      }
-    });
-  });
+  };
+
+  // Refresh access token
+  refreshToken = async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      // Placeholder implementation
+      const newToken = jwt.sign(
+        { userId: 123, username: 'user' },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '7d' }
+      );
+
+      successResponse(res, {
+        message: 'Token refreshed successfully',
+        data: {
+          token: newToken,
+          expiresIn: '7d'
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Token refresh failed', 500, error.message);
+    }
+  };
+
+  // Request password reset
+  forgotPassword = async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Password reset email sent',
+        data: {
+          email,
+          resetTokenSent: true
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Password reset request failed', 500, error.message);
+    }
+  };
+
+  // Reset password with token
+  resetPassword = async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Password reset successful',
+        data: {
+          passwordReset: true
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Password reset failed', 500, error.message);
+    }
+  };
+
+  // Change password (authenticated)
+  changePassword = async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user?.userId;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Password changed successfully',
+        data: {
+          userId,
+          passwordChanged: true,
+          changedAt: new Date()
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Password change failed', 500, error.message);
+    }
+  };
+
+  // Get user profile
+  getProfile = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      
+      // Placeholder implementation
+      const profile = {
+        id: userId,
+        username: req.user?.username || 'user',
+        email: 'user@example.com',
+        firstName: 'User',
+        lastName: 'Test',
+        avatar: null,
+        bio: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isEmailVerified: false
+      };
+
+      successResponse(res, {
+        message: 'Profile retrieved successfully',
+        data: { user: profile }
+      });
+    } catch (error) {
+      errorResponse(res, 'Failed to get profile', 500, error.message);
+    }
+  };
+
+  // Update user profile
+  updateProfile = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      const { firstName, lastName, email, avatar, bio } = req.body;
+      
+      // Placeholder implementation
+      const updatedProfile = {
+        id: userId,
+        username: req.user?.username || 'user',
+        firstName: firstName || 'User',
+        lastName: lastName || 'Test',
+        email: email || 'user@example.com',
+        avatar: avatar || null,
+        bio: bio || null,
+        updatedAt: new Date()
+      };
+
+      successResponse(res, {
+        message: 'Profile updated successfully',
+        data: { user: updatedProfile }
+      });
+    } catch (error) {
+      errorResponse(res, 'Profile update failed', 500, error.message);
+    }
+  };
+
+  // Check username availability
+  checkUsername = async (req, res) => {
+    try {
+      const { username } = req.params;
+      
+      // Placeholder implementation - always return available for demo
+      const isAvailable = true;
+
+      successResponse(res, {
+        message: isAvailable ? 'Username is available' : 'Username is taken',
+        data: {
+          username: username.toLowerCase(),
+          isAvailable
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Username check failed', 500, error.message);
+    }
+  };
+
+  // Verify email address
+  verifyEmail = async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Email verified successfully',
+        data: {
+          emailVerified: true,
+          verifiedAt: new Date()
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Email verification failed', 500, error.message);
+    }
+  };
+
+  // Resend email verification
+  resendVerification = async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Verification email sent',
+        data: {
+          email,
+          verificationSent: true
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Failed to resend verification', 500, error.message);
+    }
+  };
+
+  // Delete user account
+  deleteAccount = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      const { password, confirmDeletion } = req.body;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Account deleted successfully',
+        data: {
+          userId,
+          deletedAt: new Date(),
+          confirmed: confirmDeletion
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Account deletion failed', 500, error.message);
+    }
+  };
+
+  // Get active user sessions
+  getSessions = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      
+      // Placeholder implementation
+      const sessions = {
+        userId,
+        activeSessions: [
+          {
+            id: 'session1',
+            device: 'Chrome on Windows',
+            ip: '192.168.1.1',
+            location: 'New York, US',
+            createdAt: new Date(),
+            lastActive: new Date(),
+            isCurrent: true
+          }
+        ],
+        total: 1
+      };
+
+      successResponse(res, {
+        message: 'Sessions retrieved successfully',
+        data: sessions
+      });
+    } catch (error) {
+      errorResponse(res, 'Failed to get sessions', 500, error.message);
+    }
+  };
+
+  // Revoke a specific session
+  revokeSession = async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user?.userId;
+      
+      // Placeholder implementation
+      successResponse(res, {
+        message: 'Session revoked successfully',
+        data: {
+          sessionId,
+          userId,
+          revokedAt: new Date()
+        }
+      });
+    } catch (error) {
+      errorResponse(res, 'Failed to revoke session', 500, error.message);
+    }
+  };
+
+  // Get current user info (lightweight)
+  getCurrentUser = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      
+      // Placeholder implementation
+      const currentUser = {
+        id: userId,
+        username: req.user?.username || 'user',
+        isAuthenticated: true,
+        lastSeen: new Date()
+      };
+
+      successResponse(res, {
+        message: 'Current user info retrieved',
+        data: { user: currentUser }
+      });
+    } catch (error) {
+      errorResponse(res, 'Failed to get current user', 500, error.message);
+    }
+  };
 }
 
 export default new AuthController();

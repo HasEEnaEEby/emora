@@ -1,5 +1,6 @@
+// src/models/mood.model.js - Fixed version
 import mongoose from 'mongoose';
-import { EMOTION_NAMES, getEmotionCategory, getEmotionColor } from '../constants/emotions.js';
+import { EMOTION_NAMES, getCoreEmotion, getEmotionColor } from '../constants/emotions.js';
 
 const moodSchema = new mongoose.Schema({
   userId: {
@@ -125,7 +126,12 @@ moodSchema.index({ createdAt: -1 });
 
 // Virtual for emotion category - FIXED VERSION
 moodSchema.virtual('emotionCategory').get(function() {
-  return getEmotionCategory(this.emotion);
+  return getCoreEmotion(this.emotion); // Use getCoreEmotion instead of getEmotionCategory
+});
+
+// Virtual for core emotion (Inside Out style)
+moodSchema.virtual('coreEmotion').get(function() {
+  return getCoreEmotion(this.emotion);
 });
 
 // Static methods
@@ -137,6 +143,37 @@ moodSchema.statics.getEmotionStats = function(filter = {}) {
         _id: '$emotion',
         count: { $sum: 1 },
         avgIntensity: { $avg: '$intensity' }
+      }
+    },
+    { $sort: { count: -1 } }
+  ]);
+};
+
+moodSchema.statics.getCoreEmotionStats = function(filter = {}) {
+  return this.aggregate([
+    { $match: filter },
+    {
+      $addFields: {
+        coreEmotion: {
+          $switch: {
+            branches: [
+              { case: { $in: ['$emotion', ['happy', 'joyful', 'excited', 'cheerful', 'delighted', 'content', 'grateful', 'proud']] }, then: 'joy' },
+              { case: { $in: ['$emotion', ['sad', 'depressed', 'melancholy', 'lonely', 'heartbroken', 'nostalgic']] }, then: 'sadness' },
+              { case: { $in: ['$emotion', ['angry', 'furious', 'frustrated', 'annoyed', 'irritated', 'jealous']] }, then: 'anger' },
+              { case: { $in: ['$emotion', ['scared', 'anxious', 'worried', 'nervous', 'stressed', 'overwhelmed']] }, then: 'fear' },
+              { case: { $in: ['$emotion', ['disgusted', 'revolted', 'appalled', 'offended', 'embarrassed']] }, then: 'disgust' }
+            ],
+            default: 'joy'
+          }
+        }
+      }
+    },
+    {
+      $group: {
+        _id: '$coreEmotion',
+        count: { $sum: 1 },
+        avgIntensity: { $avg: '$intensity' },
+        emotions: { $addToSet: '$emotion' }
       }
     },
     { $sort: { count: -1 } }
@@ -161,9 +198,67 @@ moodSchema.statics.getLocationStats = function(filter = {}) {
   ]);
 };
 
+moodSchema.statics.getGlobalMoodHeatmap = function(bounds, timeRange) {
+  const matchQuery = {
+    createdAt: { $gte: timeRange.startDate, $lte: timeRange.endDate }
+  };
+
+  if (bounds && bounds.northeast && bounds.southwest) {
+    matchQuery['location.coordinates'] = {
+      $geoWithin: {
+        $box: [
+          [bounds.southwest.lng, bounds.southwest.lat],
+          [bounds.northeast.lng, bounds.northeast.lat]
+        ]
+      }
+    };
+  }
+
+  return this.aggregate([
+    { $match: matchQuery },
+    {
+      $addFields: {
+        coreEmotion: {
+          $switch: {
+            branches: [
+              { case: { $in: ['$emotion', ['happy', 'joyful', 'excited', 'cheerful', 'delighted', 'content', 'grateful', 'proud']] }, then: 'joy' },
+              { case: { $in: ['$emotion', ['sad', 'depressed', 'melancholy', 'lonely', 'heartbroken', 'nostalgic']] }, then: 'sadness' },
+              { case: { $in: ['$emotion', ['angry', 'furious', 'frustrated', 'annoyed', 'irritated', 'jealous']] }, then: 'anger' },
+              { case: { $in: ['$emotion', ['scared', 'anxious', 'worried', 'nervous', 'stressed', 'overwhelmed']] }, then: 'fear' },
+              { case: { $in: ['$emotion', ['disgusted', 'revolted', 'appalled', 'offended', 'embarrassed']] }, then: 'disgust' }
+            ],
+            default: 'joy'
+          }
+        }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          coreEmotion: '$coreEmotion',
+          location: {
+            lat: { $round: [{ $arrayElemAt: ['$location.coordinates', 1] }, 2] },
+            lng: { $round: [{ $arrayElemAt: ['$location.coordinates', 0] }, 2] }
+          }
+        },
+        count: { $sum: 1 },
+        avgIntensity: { $avg: '$intensity' },
+        emotions: { $addToSet: '$emotion' },
+        lastUpdate: { $max: '$createdAt' }
+      }
+    },
+    { $sort: { count: -1 } },
+    { $limit: 1000 }
+  ]);
+};
+
 // Instance methods
 moodSchema.methods.getEmotionColor = function() {
   return getEmotionColor(this.emotion);
+};
+
+moodSchema.methods.getCoreEmotion = function() {
+  return getCoreEmotion(this.emotion);
 };
 
 // Pre-save middleware
@@ -180,7 +275,7 @@ moodSchema.pre('save', function(next) {
   else this.context.timeOfDay = 'night';
   
   // Day of week
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
   this.context.dayOfWeek = days[day];
   this.context.isWeekend = day === 0 || day === 6;
   

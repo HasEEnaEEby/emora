@@ -1,12 +1,13 @@
+// src/middlewares/error.middleware.js - Fixed version
 import logger from '../utils/logger.js';
-import { errorResponse } from '../utils/response.js';
+import { createErrorResponse } from '../utils/response.js';
 
 const errorMiddleware = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
   // Log error
-  logger.error(err.stack);
+  logger.error('❌ Error middleware triggered:', err.stack);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
@@ -43,12 +44,61 @@ const errorMiddleware = (err, req, res, next) => {
     error = { message, statusCode: 429 };
   }
 
-  return errorResponse(
-    res,
-    error.message || 'Server Error',
-    error.statusCode || 500,
-    process.env.NODE_ENV === 'development' ? { stack: err.stack } : {}
+  // CORS errors
+  if (err.message && err.message.includes('CORS')) {
+    const message = 'Cross-origin request blocked';
+    error = { message, statusCode: 403 };
+  }
+
+  // File upload errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    const message = 'File too large';
+    error = { message, statusCode: 413 };
+  }
+
+  // Create error response using the correct function
+  const errorResponse = createErrorResponse(
+    error.message || 'Internal server error',
+    process.env.NODE_ENV === 'development' ? { 
+      stack: err.stack,
+      type: err.name,
+      code: err.code 
+    } : null,
+    error.statusCode || 500
   );
+
+  return res.status(error.statusCode || 500).json(errorResponse);
+};
+
+// Handle 404 errors
+export const notFoundMiddleware = (req, res, next) => {
+  const message = `Route not found: ${req.method} ${req.originalUrl}`;
+  logger.warn(`⚠️ 404 - ${message}`);
+  
+  const errorResponse = createErrorResponse(message, null, 404);
+  return res.status(404).json(errorResponse);
+};
+
+// Handle async errors
+export const asyncErrorHandler = (fn) => {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+
+// Graceful error handling for uncaught exceptions
+export const handleUncaughtExceptions = () => {
+  process.on('uncaughtException', (err) => {
+    logger.error('💥 Uncaught Exception:', err);
+    logger.error('🛑 Shutting down server...');
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error('🛑 Shutting down server...');
+    process.exit(1);
+  });
 };
 
 export default errorMiddleware;

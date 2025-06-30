@@ -1,4 +1,5 @@
-import { errorResponse } from '../utils/response.js';
+// src/middlewares/validation.middleware.js - Fixed version
+import { createErrorResponse } from '../utils/response.js';
 
 const validationMiddleware = (schema) => {
   return (req, res, next) => {
@@ -11,10 +12,14 @@ const validationMiddleware = (schema) => {
     if (error) {
       const errors = error.details.map(detail => ({
         field: detail.path.join('.'),
-        message: detail.message
+        message: detail.message,
+        value: detail.context?.value
       }));
 
-      return errorResponse(res, 'Validation failed', 400, { errors });
+      return res.status(400).json(createErrorResponse(
+        'Validation failed', 
+        { errors }
+      ));
     }
 
     req.body = value;

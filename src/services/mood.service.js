@@ -1,4 +1,4 @@
-import { getEmotionCategory, getEmotionColor } from '../constants/emotions.js';
+import { getEmotionColor } from '../constants/emotions.js';
 import Mood from '../models/mood.model.js';
 import cacheService from '../utils/cache.js';
 import logger from '../utils/logger.js';

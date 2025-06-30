@@ -1,4 +1,4 @@
-import { getEmotionCategory } from '../constants/emotions.js';
+import { getCoreEmotion } from '../constants/emotions.js';
 import Mood from '../models/mood.model.js';
 import logger from '../utils/logger.js';
 
