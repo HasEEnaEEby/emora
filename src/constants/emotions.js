@@ -2,6 +2,9 @@ export const CORE_EMOTIONS = ['joy', 'sadness', 'anger', 'fear', 'disgust'];
 
 // Extended emotion vocabulary
 export const EMOTION_NAMES = [
+  // Core emotions first
+  'joy', 'sadness', 'anger', 'fear', 'disgust',
+  
   // Joy family
   'happy', 'joyful', 'excited', 'cheerful', 'delighted', 'ecstatic', 'elated', 'euphoric',
   'glad', 'pleased', 'content', 'satisfied', 'blissful', 'overjoyed', 'thrilled',

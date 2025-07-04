@@ -7,16 +7,6 @@ import { validateTimeframe } from '../validators/emotion.validator.js';
 
 const router = Router();
 
-// Debug: Check if imports are working
-console.log('🔍 Dashboard Routes Debug:');
-console.log('dashboardController:', dashboardController);
-console.log('dashboardController.getHomeDashboard:', dashboardController?.getHomeDashboard);
-console.log('authMiddleware:', authMiddleware);
-console.log('authMiddleware.optional:', authMiddleware?.optional);
-console.log('authMiddleware.required:', authMiddleware?.required);
-console.log('validateTimeframe:', validateTimeframe);
-console.log('createRateLimit:', typeof createRateLimit);
-
 // Apply rate limiting using createRateLimit function
 router.use(createRateLimit(
   100, // max requests
@@ -31,8 +21,8 @@ router.use(createRateLimit(
  * @query   {cache?}
  */
 router.get('/home',
-  authMiddleware?.optional || ((req, res, next) => next()), // Fallback if undefined
-  dashboardController?.getHomeDashboard || ((req, res) => res.json({ error: 'getHomeDashboard not found' }))
+  authMiddleware.optional,
+  dashboardController.getHomeDashboard
 );
 
 /**
@@ -42,9 +32,9 @@ router.get('/home',
  * @query   {timeframe?}
  */
 router.get('/analytics',
-  authMiddleware?.required || ((req, res, next) => next()),
-  validateTimeframe || ((req, res, next) => next()),
-  dashboardController?.getAnalyticsDashboard || ((req, res) => res.json({ error: 'getAnalyticsDashboard not found' }))
+  authMiddleware.required,
+  validateTimeframe,
+  dashboardController.getAnalyticsDashboard
 );
 
 /**
@@ -59,7 +49,7 @@ router.get('/realtime',
     1 * 60 * 1000, // 1 minute window
     'Too many real-time requests'
   ),
-  dashboardController?.getRealtimeUpdates || ((req, res) => res.json({ error: 'getRealtimeUpdates not found' }))
+  dashboardController.getRealtimeUpdates
 );
 
 /**

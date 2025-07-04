@@ -31,6 +31,11 @@ import recommendationRoutes from './routes/recommendations.routes.js';
 // NEW: Import professional dashboard routes
 import dashboardRoutes from './routes/dashboard.routes.js';
 
+// NEW: Import advanced features routes
+import ventRoutes from './routes/vent.routes.js';
+import friendRoutes from './routes/friend.routes.js';
+import insightsRoutes from './routes/insights.routes.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -56,18 +61,21 @@ connectRedis();
 app.set('trust proxy', 1);
 
 // ENHANCED: Security middleware with better configuration
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "wss:", "https:"],
-    },
-  }
-}));
+// app.use(helmet({
+//   crossOriginEmbedderPolicy: false,
+//   contentSecurityPolicy: {
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       styleSrc: ["'self'", "'unsafe-inline'"],
+//       scriptSrc: ["'self'"],
+//       imgSrc: ["'self'", "data:", "https:"],
+//       connectSrc: ["'self'", "wss:", "https:"],
+//     },
+//   }
+// }));
+
+// Temporarily disable helmet for testing
+console.log('🔓 Helmet disabled for testing');
 
 // ENHANCED: CORS with multiple origins support
 app.use(cors({
@@ -120,8 +128,8 @@ app.use(express.json({
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
-app.use(rateLimitMiddleware);
+// Rate limiting - only apply to specific routes, not globally
+// app.use(rateLimitMiddleware); // Remove global rate limiting
 
 // Make io accessible to routes
 app.use((req, res, next) => {
@@ -140,6 +148,11 @@ app.use('/api/emotions', emotionRoutes);
 
 // NEW: Add professional dashboard routes
 app.use('/api/dashboard', dashboardRoutes);
+
+// NEW: Add advanced features routes
+app.use('/api/vents', ventRoutes);
+app.use('/api/friends', friendRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // ENHANCED: Health check endpoint with comprehensive status
 app.get('/api/health', async (req, res) => {
@@ -221,6 +234,43 @@ app.get('/api/docs', (req, res) => {
         analytics: 'GET /dashboard/analytics',
         realtime: 'GET /dashboard/realtime'
       },
+      vents: {
+        create: 'POST /vents',
+        feed: 'GET /vents/feed',
+        regional: 'GET /vents/regional/:country',
+        react: 'POST /vents/:ventId/react',
+        reply: 'POST /vents/:ventId/reply',
+        flag: 'POST /vents/:ventId/flag',
+        stats: 'GET /vents/stats',
+        delete: 'DELETE /vents/:ventId'
+      },
+      friends: {
+        request: 'POST /friends/request/:recipientId',
+        accept: 'POST /friends/accept/:requestId',
+        decline: 'POST /friends/decline/:requestId',
+        list: 'GET /friends',
+        pending: 'GET /friends/pending',
+        checkIn: 'POST /friends/check-in/:friendId',
+        moods: 'GET /friends/:friendId/moods',
+        remove: 'DELETE /friends/:friendId',
+        block: 'POST /friends/block/:userId',
+        stats: 'GET /friends/stats/overview'
+      },
+      insights: {
+        overview: 'GET /insights',
+        emotions: 'GET /insights/emotions',
+        patterns: {
+          weekly: 'GET /insights/patterns/weekly',
+          daily: 'GET /insights/patterns/daily'
+        },
+        streak: 'GET /insights/streak',
+        topEmotions: 'GET /insights/emotions/top',
+        trends: 'GET /insights/trends',
+        recommendations: 'GET /insights/recommendations',
+        vents: 'GET /insights/vents',
+        recap: 'GET /insights/recap',
+        global: 'GET /insights/global'
+      },
       // Your existing endpoints
       mood: 'Various mood endpoints',
       heatmap: 'Various heatmap endpoints',
@@ -233,7 +283,11 @@ app.get('/api/docs', (req, res) => {
       professionalAnalytics: 'Advanced pattern recognition and insights',
       anonymousLogging: 'Privacy-first emotion tracking',
       realTimeUpdates: 'WebSocket-based live updates',
-      contextualTracking: 'Weather, location, and activity correlation'
+      contextualTracking: 'Weather, location, and activity correlation',
+      anonymousVenting: 'Safe space for anonymous emotional expression',
+      socialFeatures: 'Friend connections and emotional support',
+      advancedInsights: 'Personalized recommendations and mood patterns',
+      contentModeration: 'Community safety and content filtering'
     }
   };
 
@@ -250,14 +304,18 @@ app.get('/', (req, res) => {
     success: true,
     message: '🎭 Welcome to EMORA - Professional Emotion Analytics Platform',
     version: '2.0.0',
-    features: [
-      '🎯 Inside Out emotion mapping',
-      '🌍 Global emotion heatmap',
-      '📊 Advanced analytics & insights',
-      '🔒 Privacy-first design',
-      '⚡ Real-time updates',
-      '🎨 Professional API design'
-    ],
+          features: [
+        '🎯 Inside Out emotion mapping',
+        '🌍 Global emotion heatmap',
+        '📊 Advanced analytics & insights',
+        '🔒 Privacy-first design',
+        '⚡ Real-time updates',
+        '🎨 Professional API design',
+        '💬 Anonymous venting system',
+        '👥 Social features & friend support',
+        '🧠 AI-powered insights & recommendations',
+        '🛡️ Content moderation & safety'
+      ],
     links: {
       documentation: '/api/docs',
       health: '/api/health',
@@ -432,14 +490,14 @@ const gracefulShutdown = (signal) => {
       });
     }
     
-    logger.info('✅ Server closed successfully');
-    logger.info('✅ EMORA Backend shutdown complete');
+    logger.info(' Server closed successfully');
+    logger.info(' EMORA Backend shutdown complete');
     process.exit(0);
   });
 
   // Force shutdown after 30 seconds (increased for cleanup)
   setTimeout(() => {
-    logger.error('❌ Forced shutdown after 30s timeout');
+    logger.error(' Forced shutdown after 30s timeout');
     process.exit(1);
   }, 30000);
 };

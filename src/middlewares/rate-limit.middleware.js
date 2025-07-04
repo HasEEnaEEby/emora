@@ -1,10 +1,14 @@
-import rateLimit from 'express-rate-limit';
+import expressRateLimit from 'express-rate-limit';
 import config from '../config/index.js';
 import logger from '../utils/logger.js';
 
 // Enhanced rate limiter factory function
+export const rateLimit = (options) => {
+  return createRateLimit(options.max, options.windowMs, options.message, options.keyGenerator);
+};
+
 export const createRateLimit = (max, windowMs, message = 'Too many requests', keyGenerator = null) => {
-  return rateLimit({
+  return expressRateLimit({
     windowMs,
     max,
     message: {
@@ -122,7 +126,7 @@ export const authRateLimiters = {
 };
 
 // Your existing general rate limit middleware (enhanced)
-const rateLimitMiddleware = rateLimit({
+const rateLimitMiddleware = expressRateLimit({
   windowMs: config.RATE_LIMIT_WINDOW || 15 * 60 * 1000, // 15 minutes
   max: config.RATE_LIMIT_MAX || 100, // 100 requests per window
   message: {

@@ -5,13 +5,13 @@ import logger from '../utils/logger.js';
 let redisClient = null;
 
 const connectRedis = async () => {
-  // Skip Redis completely in development
-  if (config.NODE_ENV === 'development') {
-    logger.info('🔴 Redis disabled in development mode');
+  // Skip Redis completely in development unless explicitly enabled
+  if (config.NODE_ENV === 'development' && !process.env.FORCE_REDIS) {
+    logger.info('🔴 Redis disabled in development mode (set FORCE_REDIS=true to enable)');
     return null;
   }
 
-  // Only try Redis in production or when explicitly enabled
+  // Only try Redis if URL is provided
   if (!process.env.REDIS_URL) {
     logger.info('🔴 Redis not configured - skipping');
     return null;
@@ -21,27 +21,37 @@ const connectRedis = async () => {
     redisClient = redis.createClient({
       url: process.env.REDIS_URL,
       socket: {
-        connectTimeout: 2000,
-        lazyConnect: true
+        connectTimeout: 5000,
+        lazyConnect: true,
+        reconnectStrategy: (retries) => {
+          if (retries > 3) {
+            logger.warn('🔴 Redis connection failed after 3 retries - continuing without cache');
+            return false; // Stop retrying
+          }
+          return Math.min(retries * 1000, 5000); // Exponential backoff, max 5s
+        }
       }
     });
 
     // Only log successful connections
     redisClient.on('connect', () => {
-      logger.info('🔴 Redis connected');
+      logger.info('🔴 Redis connected successfully');
     });
 
-    // Disable error retry loop
+    // Handle connection errors gracefully
     redisClient.on('error', (err) => {
-      logger.warn('🔴 Redis unavailable - continuing without cache');
-      redisClient = null;
-      return; // Don't retry
+      if (err.code === 'ECONNREFUSED') {
+        logger.warn('🔴 Redis unavailable - continuing without cache');
+        redisClient = null;
+      } else {
+        logger.warn('🔴 Redis error:', err.message);
+      }
     });
 
     await redisClient.connect();
     return redisClient;
   } catch (error) {
-    logger.info('🔴 Redis skipped - continuing without cache');
+    logger.info('🔴 Redis connection failed - continuing without cache:', error.message);
     redisClient = null;
     return null;
   }

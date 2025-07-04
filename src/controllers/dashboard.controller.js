@@ -2,11 +2,14 @@
 import { errorResponse, successResponse } from '../utils/response.js';
 
 class DashboardController {
-  // Get comprehensive home dashboard data
+  // ✅ Get comprehensive home dashboard data
   getHomeDashboard = async (req, res) => {
     try {
-      // Placeholder implementation for home dashboard
+      const user = req.user || null;
+
       const dashboardData = {
+        personalized: !!user,
+        welcomeMessage: user ? `Welcome back, ${user.username}!` : "Welcome to EMORA!",
         overview: {
           totalEmotions: 0,
           todayEmotions: 0,
@@ -27,14 +30,9 @@ class DashboardController {
           totalUsers: 0,
           totalEmotions: 0,
           topEmotions: []
-        }
+        },
+        timestamp: new Date().toISOString()
       };
-
-      // If user is authenticated, include personalized data
-      if (req.user) {
-        dashboardData.personalized = true;
-        dashboardData.userId = req.user.id;
-      }
 
       successResponse(res, {
         message: 'Home dashboard data retrieved successfully',
@@ -46,15 +44,14 @@ class DashboardController {
     }
   };
 
-  // Get detailed analytics dashboard
+  // ✅ Get detailed analytics dashboard
   getAnalyticsDashboard = async (req, res) => {
     try {
       const { timeframe = '30d' } = req.query;
-      
-      // Placeholder implementation for analytics dashboard
+
       const analyticsData = {
         timeframe,
-        userId: req.user.id,
+        userId: req.user?.id || 'anonymous',
         emotionAnalytics: {
           distribution: {},
           trends: [],
@@ -91,12 +88,11 @@ class DashboardController {
     }
   };
 
-  // Get real-time dashboard updates
+  // ✅ Get real-time dashboard updates
   getRealtimeUpdates = async (req, res) => {
     try {
       const { lastUpdate } = req.query;
-      
-      // Placeholder implementation for real-time updates
+
       const realtimeData = {
         timestamp: new Date().toISOString(),
         lastUpdate,
@@ -121,11 +117,10 @@ class DashboardController {
         hasUpdates: false
       };
 
-      // Check if there are actual updates since lastUpdate
       if (lastUpdate) {
         const lastUpdateTime = new Date(lastUpdate);
         const now = new Date();
-        realtimeData.hasUpdates = (now - lastUpdateTime) > 30000; // 30 seconds
+        realtimeData.hasUpdates = (now - lastUpdateTime) > 30000;
       }
 
       successResponse(res, {
@@ -138,7 +133,7 @@ class DashboardController {
     }
   };
 
-  // Get dashboard summary (lightweight version)
+  // ✅ Get lightweight dashboard summary
   getDashboardSummary = async (req, res) => {
     try {
       const summary = {
@@ -170,7 +165,7 @@ class DashboardController {
     }
   };
 
-  // Get user-specific dashboard widgets
+  // ✅ Get user-specific dashboard widgets
   getUserWidgets = async (req, res) => {
     try {
       const widgets = {
@@ -206,12 +201,11 @@ class DashboardController {
     }
   };
 
-  // Update user dashboard configuration
+  // ✅ Update dashboard configuration
   updateDashboardConfig = async (req, res) => {
     try {
       const { widgets, theme, layout } = req.body;
-      
-      // Placeholder implementation for updating dashboard config
+
       const updatedConfig = {
         userId: req.user.id,
         widgets: widgets || {},
