@@ -37,7 +37,6 @@ export const authMiddleware = async (req, res, next) => {
 
     // Check if user still exists and is active
     const user = await User.findById(decoded.userId);
-    console.log('🔑 User:', user);
     
     if (!user || !user.isActive) {
       return res.status(401).json({

@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
 import User from '../models/user.model.js';
+import Emotion from '../models/emotion.model.js';
+import Friend from '../models/friend.model.js';
+import ComfortReaction from '../models/comfort-reaction.model.js';
+import Analytics from '../models/analytics.model.js';
 import { errorResponse, successResponse } from '../utils/response.js';
 
 class AuthController {
@@ -116,7 +120,7 @@ class AuthController {
 
       console.log('✅ User registered successfully:', responseUser.username);
 
-      successResponse(res, {
+      return successResponse(res, {
         message: 'User registered successfully',
         data: {
           user: responseUser,
@@ -127,7 +131,7 @@ class AuthController {
 
     } catch (error) {
       console.error('❌ Registration error:', error);
-      errorResponse(res, 'Registration failed', 500, error.message);
+      return errorResponse(res, 'Registration failed', 500, error.message);
     }
   };
 
@@ -231,7 +235,7 @@ login = async (req, res) => {
 
     console.log('✅ DEBUG: Login successful for user:', user.username);
 
-    successResponse(res, {
+    return successResponse(res, {
       message: 'Login successful',
       data: {
         user: responseUser,
@@ -242,7 +246,7 @@ login = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Login error:', error);
-    errorResponse(res, 'Login failed', 500, error.message);
+    return errorResponse(res, 'Login failed', 500, error.message);
   }
 };
 
@@ -270,7 +274,7 @@ login = async (req, res) => {
         suggestions = await User.generateUsernameSuggestions(normalizedUsername);
       }
 
-      successResponse(res, {
+      return successResponse(res, {
         message: isAvailable ? 'Username is available' : 'Username is taken',
         data: {
           username: normalizedUsername,
@@ -281,7 +285,7 @@ login = async (req, res) => {
 
     } catch (error) {
       console.error('❌ Username check error:', error);
-      errorResponse(res, 'Username check failed', 500, error.message);
+      return errorResponse(res, 'Username check failed', 500, error.message);
     }
   };
 
@@ -301,37 +305,136 @@ login = async (req, res) => {
 
       const responseUser = user.getPublicProfile();
 
-      successResponse(res, {
+      return successResponse(res, {
         message: 'Current user retrieved successfully',
         data: { user: responseUser }
       });
 
     } catch (error) {
       console.error('❌ Get current user error:', error);
-      errorResponse(res, 'Failed to get current user', 500, error.message);
+      return errorResponse(res, 'Failed to get current user', 500, error.message);
     }
   };
 
-  // Logout user
+  // Professional logout with comprehensive cleanup
   logout = async (req, res) => {
     try {
       const userId = req.user?.userId;
       
       if (userId) {
-        // Update user's online status
+        // Update user's online status and last active timestamp
         await User.findByIdAndUpdate(userId, { 
           isOnline: false,
-          'analytics.lastActiveAt': new Date()
+          'analytics.lastActiveAt': new Date(),
+          updatedAt: new Date()
         });
+
+        // Log the logout event for analytics
+        console.log(`🔐 User ${userId} logged out successfully`);
       }
 
-      successResponse(res, {
-        message: 'Logout successful'
+      return successResponse(res, {
+        message: 'Logout successful',
+        data: {
+          timestamp: new Date().toISOString(),
+          userId: userId || null
+        }
       });
 
     } catch (error) {
       console.error('❌ Logout error:', error);
-      errorResponse(res, 'Logout failed', 500, error.message);
+      return errorResponse(res, 'Logout failed', 500, error.message);
+    }
+  };
+
+  // Professional account deletion with complete data cleanup
+  deleteAccount = async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+      const { password, confirmation } = req.body;
+
+      if (!userId) {
+        return errorResponse(res, 'User not authenticated', 401);
+      }
+
+      if (!password) {
+        return errorResponse(res, 'Password is required for account deletion', 400);
+      }
+
+      if (confirmation !== 'DELETE') {
+        return errorResponse(res, 'Please type DELETE to confirm account deletion', 400);
+      }
+
+      // Find the user and verify password
+      const user = await User.findById(userId);
+      if (!user) {
+        return errorResponse(res, 'User not found', 404);
+      }
+
+      // Verify password before deletion
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid) {
+        return errorResponse(res, 'Invalid password', 401);
+      }
+
+      // Start transaction for complete data cleanup
+      const session = await User.db.startSession();
+      
+      try {
+        await session.withTransaction(async () => {
+          // 1. Delete user's emotions/entries
+          await Emotion.deleteMany({ userId: userId }, { session });
+          
+          // 2. Remove user from friends lists
+          await User.updateMany(
+            { friends: userId },
+            { $pull: { friends: userId } },
+            { session }
+          );
+          
+          // 3. Delete friend requests
+          await Friend.deleteMany({
+            $or: [
+              { requester: userId },
+              { recipient: userId }
+            ]
+          }, { session });
+          
+          // 4. Delete comfort reactions
+          await ComfortReaction.deleteMany({
+            $or: [
+              { userId: userId },
+              { targetUserId: userId }
+            ]
+          }, { session });
+          
+          // 5. Delete analytics data
+          await Analytics.deleteMany({ userId: userId }, { session });
+          
+          // 6. Finally, delete the user account
+          await User.findByIdAndDelete(userId, { session });
+          
+          console.log(`🗑️ User ${userId} account and all associated data deleted successfully`);
+        });
+
+        return successResponse(res, {
+          message: 'Account deleted successfully',
+          data: {
+            timestamp: new Date().toISOString(),
+            userId: userId
+          }
+        });
+
+      } catch (transactionError) {
+        console.error('❌ Account deletion transaction failed:', transactionError);
+        return errorResponse(res, 'Account deletion failed', 500, transactionError.message);
+      } finally {
+        await session.endSession();
+      }
+
+    } catch (error) {
+      console.error('❌ Account deletion error:', error);
+      return errorResponse(res, 'Account deletion failed', 500, error.message);
     }
   };
 
@@ -363,7 +466,7 @@ login = async (req, res) => {
         { expiresIn: '7d' }
       );
 
-      successResponse(res, {
+      return successResponse(res, {
         message: 'Token refreshed successfully',
         data: {
           token: newToken,
@@ -373,7 +476,7 @@ login = async (req, res) => {
 
     } catch (error) {
       console.error('❌ Token refresh error:', error);
-      errorResponse(res, 'Token refresh failed', 401, error.message);
+      return errorResponse(res, 'Token refresh failed', 401, error.message);
     }
   };
 
@@ -394,14 +497,14 @@ login = async (req, res) => {
         version: '1.0.0'
       };
 
-      successResponse(res, {
+      return successResponse(res, {
         message: 'Auth service is healthy',
         data: health
       });
 
     } catch (error) {
       console.error('❌ Health check error:', error);
-      errorResponse(res, 'Auth service health check failed', 503, error.message);
+      return errorResponse(res, 'Auth service health check failed', 503, error.message);
     }
   };
 
@@ -420,7 +523,7 @@ login = async (req, res) => {
       const user = await User.findOne({ email: email.toLowerCase().trim() });
       
       // Always return success to prevent email enumeration
-      successResponse(res, {
+      return successResponse(res, {
         message: 'If an account with that email exists, a password reset link has been sent'
       });
 
@@ -432,7 +535,7 @@ login = async (req, res) => {
 
     } catch (error) {
       console.error('❌ Forgot password error:', error);
-      errorResponse(res, 'Password reset request failed', 500, error.message);
+      return errorResponse(res, 'Password reset request failed', 500, error.message);
     }
   };
 
@@ -451,11 +554,11 @@ login = async (req, res) => {
 
       // TODO: Verify reset token and update password
       // For now, return not implemented
-      errorResponse(res, 'Password reset functionality coming soon', 501);
+      return errorResponse(res, 'Password reset functionality coming soon', 501);
 
     } catch (error) {
       console.error('❌ Reset password error:', error);
-      errorResponse(res, 'Password reset failed', 500, error.message);
+      return errorResponse(res, 'Password reset failed', 500, error.message);
     }
   };
 
@@ -470,11 +573,11 @@ login = async (req, res) => {
 
       // TODO: Implement email verification logic
       // For now, return not implemented
-      errorResponse(res, 'Email verification functionality coming soon', 501);
+      return errorResponse(res, 'Email verification functionality coming soon', 501);
 
     } catch (error) {
       console.error('❌ Email verification error:', error);
-      errorResponse(res, 'Email verification failed', 500, error.message);
+      return errorResponse(res, 'Email verification failed', 500, error.message);
     }
   };
 
@@ -499,13 +602,13 @@ login = async (req, res) => {
 
       // TODO: Implement email sending logic
       // For now, return success
-      successResponse(res, {
+      return successResponse(res, {
         message: 'Verification email sent successfully'
       });
 
     } catch (error) {
       console.error('❌ Resend verification error:', error);
-      errorResponse(res, 'Failed to resend verification email', 500, error.message);
+      return errorResponse(res, 'Failed to resend verification email', 500, error.message);
     }
   };
 }

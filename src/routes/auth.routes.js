@@ -18,6 +18,9 @@ router.post('/login', validateLogin, AuthController.login);
 // User logout (requires authentication)
 router.post('/logout', authMiddleware, AuthController.logout);
 
+// Delete user account (requires authentication)
+router.delete('/delete-account', authMiddleware, AuthController.deleteAccount);
+
 // Get current user profile (requires authentication)
 router.get('/me', authMiddleware, AuthController.getCurrentUser);
 

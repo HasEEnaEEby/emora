@@ -10,12 +10,12 @@ class EmotionController {
       const {
         emotion,
         intensity,
-        legacyIntensity,
+        note,
+        tags = [],
         location,
         context,
         memory,
         privacyLevel = 'private',
-        note,
         timezone = 'UTC'
       } = req.body;
 
@@ -26,22 +26,45 @@ class EmotionController {
         userId = userId.toString();
       }
 
+      // Validate intensity (1-5 scale)
+      const validatedIntensity = Math.max(1, Math.min(5, intensity || 3));
+
+      // Map emotion types to backend format
+      const emotionTypeMap = {
+        'amazing': 'joy',
+        'good': 'happiness', 
+        'okay': 'neutral',
+        'down': 'sadness',
+        'awful': 'sadness'
+      };
+
+      const emotionType = emotionTypeMap[emotion] || emotion;
+
       const emotionData = {
         userId,
-        emotion,
-        intensity: intensity || (legacyIntensity ? (legacyIntensity - 1) / 4 : 0.5),
-        legacyIntensity: legacyIntensity || (intensity ? Math.round((intensity * 4) + 1) : 3),
-        location,
+        type: emotionType,
+        emotion: emotion, // Keep original for reference
+        intensity: validatedIntensity,
+        note: note || '',
+        tags: Array.isArray(tags) ? tags : [],
+        location: location || null,
         context: context || {},
         memory: memory || {},
-        privacyLevel,
-        note,
+        privacy: privacyLevel,
         timezone,
-        timestamp: new Date(),
-        source: 'api',
+        metadata: {
+          source: 'mobile',
+          version: '1.0.0',
+          deviceInfo: {
+            platform: 'ios',
+            model: 'iPhone',
+            os: 'iOS'
+          }
+        },
         isAnonymous: !userId
       };
 
+      // Add global sharing for public emotions
       if (privacyLevel === 'public') {
         emotionData.globalSharing = {
           isShared: true,
@@ -52,17 +75,24 @@ class EmotionController {
 
       const savedEmotion = await UnifiedEmotion.create(emotionData);
 
+      // Emit real-time update
       if (req.io) {
         req.io.emit('emotion_logged', {
-          emotion: savedEmotion.toInsideOutFormat(),
+          emotion: savedEmotion.toSafeObject(),
           privacy: privacyLevel,
           timestamp: new Date()
         });
       }
 
+      // Log success
+      logger.info(`Emotion logged successfully: ${emotionType} (${validatedIntensity}/5) by user ${userId}`);
+
       res.status(201).json(createResponse(
         'Emotion logged successfully',
-        savedEmotion
+        {
+          emotion: savedEmotion.toSafeObject(),
+          newAchievements: [] // TODO: Add achievement system
+        }
       ));
 
     } catch (error) {

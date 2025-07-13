@@ -102,8 +102,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-// PUT /api/user/profile - Update user profile
-router.put('/profile', authMiddleware, [
+// PATCH /api/user/profile - Update user profile
+router.patch('/profile', authMiddleware, [
   body('displayName').optional().trim().isLength({ min: 1, max: 50 }),
   body('bio').optional().trim().isLength({ max: 200 }),
   body('pronouns').optional().isIn(['She / Her', 'He / Him', 'They / Them', 'Other']),
