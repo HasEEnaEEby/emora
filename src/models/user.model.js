@@ -1,4 +1,4 @@
-// src/models/user.model.js - COMPLETE FIXED VERSION
+// src/models/user.model.js - FIXED AGE GROUPS
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -13,19 +13,20 @@ const userSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 30,
     lowercase: true,
-    unique: true, // This creates the index automatically
+    unique: true,
     match: /^[a-zA-Z0-9_]+$/
   },
   
   email: {
     type: String,
-    required: true,
+    required: false,  // ✅ FIXED: Make email optional
     trim: true,
     lowercase: true,
-    unique: true, // This creates the index automatically
+    unique: true,
+    sparse: true,     // ✅ FIXED: Allow unique nullable values
     validate: {
       validator: function(v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  // ✅ FIXED: Handle null/undefined
       },
       message: 'Please enter a valid email address'
     }
@@ -34,7 +35,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     minlength: 8,
-    required: false // Allow users to register without password initially
+    required: false
   },
 
   // Profile information
@@ -44,11 +45,17 @@ const userSchema = new mongoose.Schema({
     required: false
   },
   
+  // FIXED: Standardized age groups that match validation and frontend
   ageGroup: {
     type: String,
     enum: [
-      'Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+',
-      'less than 20s', '20s', '30s', '40s', '50s and above'
+      'Under 18',    // For minors
+      '18-24',       // Young adults  
+      '25-34',       // Early career
+      '35-44',       // Mid career
+      '45-54',       // Late career
+      '55-64',       // Pre-retirement
+      '65+'          // Seniors
     ],
     required: false
   },
@@ -88,7 +95,6 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-    // Note: No manual index - we let the migration script handle this
   },
   
   isOnboardingCompleted: {
@@ -181,6 +187,72 @@ const userSchema = new mongoose.Schema({
       default: 'private'
     }
   },
+
+  // Friends and social connections
+  friends: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'blocked'],
+      default: 'pending'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    acceptedAt: {
+      type: Date,
+      default: null
+    }
+  }],
+
+  friendRequests: {
+    sent: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    received: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  },
+
+  // Enhanced privacy settings
+  privacySettings: {
+    profileVisibility: {
+      type: String,
+      enum: ['public', 'friends', 'private'],
+      default: 'public'
+    },
+    emotionVisibility: {
+      type: String,
+      enum: ['public', 'friends', 'private'],
+      default: 'private'
+    },
+    locationVisibility: {
+      type: String,
+      enum: ['public', 'friends', 'private'],
+      default: 'private'
+    }
+  },
   
   // User analytics and statistics
   analytics: {
@@ -213,17 +285,18 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    // Social analytics
     totalFriends: { type: Number, default: 0 },
     totalComfortReactionsSent: { type: Number, default: 0 },
-    totalComfortReactionsReceived: { type: Number, default: 0 }
+    totalComfortReactionsReceived: { type: Number, default: 0 },
+    totalPostsShared: { type: Number, default: 0 },
+    totalCommentsGiven: { type: Number, default: 0 },
+    totalCommentsReceived: { type: Number, default: 0 }
   }
 }, {
-  timestamps: true, // This automatically creates createdAt and updatedAt with indexes
+  timestamps: true,
   toJSON: { 
     virtuals: true,
     transform: function(doc, ret) {
-      // Remove sensitive data from JSON output
       delete ret.password;
       delete ret.loginAttempts;
       delete ret.lockUntil;
@@ -235,29 +308,24 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// ============================================================================
-// INDEXES - Only add what's not automatically created
-// ============================================================================
-
-// NOTE: username and email indexes are created automatically by unique: true
-// NOTE: createdAt and updatedAt indexes are created automatically by timestamps: true
-
-// Only add compound indexes and specific performance indexes
-userSchema.index({ isActive: 1 }); // For filtering active users
-userSchema.index({ 'location.coordinates': '2dsphere' }); // For geospatial queries
-userSchema.index({ 'analytics.lastActiveAt': -1 }); // For sorting by activity
-userSchema.index({ isOnline: 1 }); // For filtering online users
-userSchema.index({ 'analytics.totalFriends': -1 }); // For social features
-
-// Compound indexes for complex queries
+// Indexes
+userSchema.index({ isActive: 1 });
+userSchema.index({ 'location.coordinates': '2dsphere' });
+userSchema.index({ 'analytics.lastActiveAt': -1 });
+userSchema.index({ isOnline: 1 });
+userSchema.index({ 'analytics.totalFriends': -1 });
 userSchema.index({ username: 1, email: 1 }, { unique: true });
 userSchema.index({ 'location.country': 1, 'location.city': 1 });
 userSchema.index({ isActive: 1, isOnline: 1 });
 
-// ============================================================================
-// VIRTUALS
-// ============================================================================
+// ✅ ADDED: Indexes for friend arrays to improve performance
+userSchema.index({ 'friends.userId': 1 });
+userSchema.index({ 'friendRequests.sent.userId': 1 });
+userSchema.index({ 'friendRequests.received.userId': 1 });
+userSchema.index({ 'friends.status': 1 });
+userSchema.index({ 'friends.userId': 1, 'friends.status': 1 });
 
+// Virtual properties
 userSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
@@ -266,20 +334,15 @@ userSchema.virtual('daysSinceJoined').get(function() {
   return Math.floor((new Date() - this.createdAt) / (1000 * 60 * 60 * 24));
 });
 
-// ============================================================================
-// MIDDLEWARE
-// ============================================================================
-
 // Pre-save middleware for password hashing
 userSchema.pre('save', async function(next) {
-  // Only hash password if it has been modified and exists
   if (!this.isModified('password') || !this.password) {
     return next();
   }
   
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    // ✅ FIXED: Use a consistent approach
+    this.password = await bcrypt.hash(this.password, 12);
     next();
   } catch (error) {
     next(error);
@@ -288,14 +351,12 @@ userSchema.pre('save', async function(next) {
 
 // Pre-save middleware to update calculated fields
 userSchema.pre('save', function(next) {
-  // Update days since joined
   if (this.createdAt) {
     this.analytics.daysSinceJoined = Math.floor(
       (Date.now() - this.createdAt) / (1000 * 60 * 60 * 24)
     );
   }
   
-  // Update last active timestamp if user is active
   if (this.isModified('isOnline') && this.isOnline) {
     this.analytics.lastActiveAt = new Date();
   }
@@ -303,11 +364,7 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// ============================================================================
-// INSTANCE METHODS
-// ============================================================================
-
-// Password comparison
+// Instance Methods
 userSchema.methods.comparePassword = async function(enteredPassword) {
   if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
@@ -317,7 +374,6 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
   return this.comparePassword(enteredPassword);
 };
 
-// Generate JWT token
 userSchema.methods.generateAuthToken = function() {
   return jwt.sign(
     { 
@@ -329,7 +385,6 @@ userSchema.methods.generateAuthToken = function() {
   );
 };
 
-// Get public profile (safe for API responses)
 userSchema.methods.getPublicProfile = function() {
   return {
     id: this._id,
@@ -348,7 +403,7 @@ userSchema.methods.getPublicProfile = function() {
     profile: this.profile,
     preferences: {
       ...this.preferences?.toObject(),
-      shareLocation: undefined // Don't expose location sharing preference
+      shareLocation: undefined
     },
     stats: this.getStats(),
     daysSinceJoined: this.daysSinceJoined,
@@ -358,7 +413,6 @@ userSchema.methods.getPublicProfile = function() {
   };
 };
 
-// Get user statistics
 userSchema.methods.getStats = function() {
   return {
     totalEmotionEntries: this.analytics?.totalEmotionEntries || 0,
@@ -375,7 +429,6 @@ userSchema.methods.getStats = function() {
   };
 };
 
-// Complete onboarding
 userSchema.methods.completeOnboarding = async function(data) {
   const { pronouns, ageGroup, selectedAvatar, location, email } = data;
   
@@ -398,9 +451,8 @@ userSchema.methods.completeOnboarding = async function(data) {
   return await this.save();
 };
 
-// Handle login attempts and account locking
+// Additional methods remain the same...
 userSchema.methods.incLoginAttempts = async function() {
-  // If we have a previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return await this.updateOne({
       $set: { loginAttempts: 1 },
@@ -410,9 +462,8 @@ userSchema.methods.incLoginAttempts = async function() {
   
   const updates = { $inc: { loginAttempts: 1 } };
   const maxAttempts = 5;
-  const lockTime = 2 * 60 * 60 * 1000; // 2 hours
+  const lockTime = 2 * 60 * 60 * 1000;
   
-  // If we're at max attempts and not locked, lock the account
   if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked) {
     updates.$set = { lockUntil: Date.now() + lockTime };
   }
@@ -420,7 +471,6 @@ userSchema.methods.incLoginAttempts = async function() {
   return await this.updateOne(updates);
 };
 
-// Update user activity
 userSchema.methods.updateActivity = async function() {
   this.analytics.lastActiveAt = new Date();
   this.analytics.loginCount += 1;
@@ -428,7 +478,6 @@ userSchema.methods.updateActivity = async function() {
   return await this.save();
 };
 
-// Set online status
 userSchema.methods.setOnlineStatus = function(isOnline) {
   this.isOnline = isOnline;
   if (isOnline) {
@@ -437,7 +486,6 @@ userSchema.methods.setOnlineStatus = function(isOnline) {
   return this.save();
 };
 
-// Update streak tracking
 userSchema.methods.updateStreak = function() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -452,14 +500,14 @@ userSchema.methods.updateStreak = function() {
     const daysDiff = Math.floor((today - lastLog) / (1000 * 60 * 60 * 24));
 
     if (daysDiff === 0) {
-      return; // Already logged today
+      return;
     } else if (daysDiff === 1) {
       currentStreak += 1;
     } else {
-      currentStreak = 1; // Streak broken
+      currentStreak = 1;
     }
   } else {
-    currentStreak = 1; // First log
+    currentStreak = 1;
   }
 
   this.analytics.currentStreak = currentStreak;
@@ -471,11 +519,99 @@ userSchema.methods.updateStreak = function() {
   return this.save();
 };
 
-// ============================================================================
-// STATIC METHODS
-// ============================================================================
+// Friend management methods
+userSchema.methods.sendFriendRequest = async function(targetUserId) {
+  // Check if request already exists
+  const existingSent = this.friendRequests.sent.find(
+    req => req.userId.toString() === targetUserId.toString()
+  );
+  
+  if (existingSent) {
+    throw new Error('Friend request already sent');
+  }
 
-// Find nearby users
+  // Check if already friends
+  const existingFriend = this.friends.find(
+    friend => friend.userId.toString() === targetUserId.toString()
+  );
+
+  if (existingFriend) {
+    throw new Error('Already friends with this user');
+  }
+
+  // Add to sent requests
+  this.friendRequests.sent.push({
+    userId: targetUserId,
+    createdAt: new Date()
+  });
+
+  return this.save();
+};
+
+userSchema.methods.acceptFriendRequest = async function(requestUserId) {
+  // Remove from received requests
+  this.friendRequests.received = this.friendRequests.received.filter(
+    req => req.userId.toString() !== requestUserId.toString()
+  );
+
+  // Add to friends list
+  this.friends.push({
+    userId: requestUserId,
+    status: 'accepted',
+    createdAt: new Date(),
+    acceptedAt: new Date()
+  });
+
+  // Update friend count
+  this.analytics.totalFriends += 1;
+
+  return this.save();
+};
+
+userSchema.methods.rejectFriendRequest = async function(requestUserId) {
+  // Remove from received requests
+  this.friendRequests.received = this.friendRequests.received.filter(
+    req => req.userId.toString() !== requestUserId.toString()
+  );
+
+  return this.save();
+};
+
+userSchema.methods.removeFriend = async function(friendUserId) {
+  // Remove from friends list
+  this.friends = this.friends.filter(
+    friend => friend.userId.toString() !== friendUserId.toString()
+  );
+
+  // Update friend count
+  this.analytics.totalFriends = Math.max(0, this.analytics.totalFriends - 1);
+
+  return this.save();
+};
+
+userSchema.methods.getFriendsList = function() {
+  return this.friends.filter(friend => friend.status === 'accepted');
+};
+
+userSchema.methods.isPendingFriend = function(userId) {
+  return this.friendRequests.sent.some(
+    req => req.userId.toString() === userId.toString()
+  );
+};
+
+userSchema.methods.isRequestReceived = function(userId) {
+  return this.friendRequests.received.some(
+    req => req.userId.toString() === userId.toString()
+  );
+};
+
+userSchema.methods.isFriend = function(userId) {
+  return this.friends.some(
+    friend => friend.userId.toString() === userId.toString() && friend.status === 'accepted'
+  );
+};
+
+// Static Methods
 userSchema.statics.findNearby = function(longitude, latitude, maxDistance = 10000) {
   return this.find({
     'location.coordinates': {
@@ -492,7 +628,6 @@ userSchema.statics.findNearby = function(longitude, latitude, maxDistance = 1000
   }).select('username selectedAvatar location.name location.city location.country');
 };
 
-// Generate username suggestions
 userSchema.statics.generateUsernameSuggestions = async function(baseUsername) {
   const suggestions = [];
   const timestamp = Date.now().toString().slice(-4);
@@ -518,23 +653,17 @@ userSchema.statics.generateUsernameSuggestions = async function(baseUsername) {
   return suggestions;
 };
 
-// Check username availability
 userSchema.statics.isUsernameAvailable = async function(username) {
   if (!username || username.trim() === '') return false;
   const user = await this.findOne({ username: username.toLowerCase().trim() });
   return !user;
 };
 
-// Check email availability
 userSchema.statics.isEmailAvailable = async function(email) {
   if (!email || email.trim() === '') return false;
   const user = await this.findOne({ email: email.toLowerCase().trim() });
   return !user;
 };
-
-// ============================================================================
-// EXPORT MODEL
-// ============================================================================
 
 const User = mongoose.model('User', userSchema);
 

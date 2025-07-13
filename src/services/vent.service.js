@@ -1,7 +1,7 @@
-const Vent = require('../models/vent.model');
-const VentReply = require('../models/vent-reply.model');
-const VentReaction = require('../models/vent-reaction.model');
-const { createError } = require('../utils/response');
+import Vent from '../models/vent.model.js';
+import VentReply from '../models/vent-reply.model.js';
+import VentReaction from '../models/vent-reaction.model.js';
+import { createError } from '../utils/response.js';
 
 class VentService {
   async createVent(userId, ventData) {
@@ -289,4 +289,4 @@ class VentService {
   }
 }
 
-module.exports = new VentService();
+export default new VentService();

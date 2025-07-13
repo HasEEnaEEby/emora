@@ -1,8 +1,8 @@
 // src/routes/analytics.routes.js
 import { Router } from 'express';
 import analyticsController from '../controllers/analytics.controller.js';
-import authMiddleware from '../middlewares/auth.middleware.js';
-import { createRateLimit } from '../middlewares/rate-limit.middleware.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { createRateLimit } from '../middleware/rate-limit.middleware.js';
 import { validatePagination, validateTimeframe } from '../validators/emotion.validator.js';
 
 const router = Router();

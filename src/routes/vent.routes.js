@@ -1,8 +1,8 @@
 import express from 'express';
 import ventController from '../controllers/vent.controller.js';
 import { validateVent, validateReaction, validateReply, validateFlag } from '../validators/vent.validator.js';
-import { rateLimit } from '../middlewares/rate-limit.middleware.js';
-import { optionalAuth } from '../middlewares/auth.middleware.js';
+import { rateLimit } from '../middleware/rate-limit.middleware.js';
+import { optionalAuth } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 

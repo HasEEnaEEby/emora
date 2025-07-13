@@ -1,7 +1,7 @@
-const ComfortReaction = require('../models/comfort-reaction.model');
-const Friend = require('../models/friend.model');
-const Emotion = require('../models/emotion.model');
-const { createError } = require('../utils/response');
+import ComfortReaction from '../models/comfort-reaction.model.js';
+import Friend from '../models/friend.model.js';
+import Emotion from '../models/emotion.model.js';
+import { createError } from '../utils/response.js';
 
 class ComfortReactionService {
   async sendComfortReaction(fromUserId, emotionId, reactionType, message = '') {
@@ -161,4 +161,4 @@ class ComfortReactionService {
   }
 }
 
-module.exports = new ComfortReactionService();
+export default new ComfortReactionService();

@@ -1,6 +1,5 @@
-const comfortReactionService = require('../services/comfort-reaction.service');
-const { createResponse } = require('../utils/response');
-const { getSocketIO } = require('../config/socket');
+import comfortReactionService from '../services/comfort-reaction.service.js';
+import { createResponse } from '../utils/response.js';
 
 class ComfortReactionController {
   async sendComfortReaction(req, res, next) {
@@ -16,9 +15,8 @@ class ComfortReactionController {
         message
       );
 
-      // Emit socket event to the emotion owner
-      const io = getSocketIO();
-      io.to(`user:${reaction.toUser}`).emit('comfort_reaction_received', {
+      // Emit socket event to the emotion owner using req.io
+      req.io.to(`user:${reaction.toUser}`).emit('comfort_reaction_received', {
         reaction,
         fromUser: reaction.fromUser,
         message: `${reaction.fromUser.name} sent you a ${reactionType} reaction`
@@ -123,4 +121,4 @@ class ComfortReactionController {
   }
 }
 
-module.exports = new ComfortReactionController();
+export default new ComfortReactionController();

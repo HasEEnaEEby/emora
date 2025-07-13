@@ -10,7 +10,7 @@ const config = {
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   
   // JWT
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+  JWT_SECRET: process.env.JWT_SECRET || 'emora-super-secret-jwt-key-for-development-change-in-production',
   JWT_EXPIRE: process.env.JWT_EXPIRE || '7d',
   
   // Client

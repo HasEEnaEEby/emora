@@ -45,4 +45,4 @@ const ventReplySchema = new mongoose.Schema({
 ventReplySchema.index({ vent: 1, createdAt: -1 });
 ventReplySchema.index({ author: 1, createdAt: -1 });
 
-module.exports = mongoose.model('VentReply', ventReplySchema);
+export default mongoose.model('VentReply', ventReplySchema);

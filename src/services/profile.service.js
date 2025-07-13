@@ -1,5 +1,6 @@
-const User = require('../models/user.model');
-const { createError } = require('../utils/response');
+import User from '../models/user.model.js';
+import { createError } from '../utils/response.js';
+import mongoose from 'mongoose';
 
 class ProfileService {
   async getProfile(userId) {
@@ -70,7 +71,14 @@ class ProfileService {
         // Delete user data
         await User.findByIdAndDelete(userId).session(session);
         
-        // Delete related data
+        // Delete related data  
+        const { default: Emotion } = await import('../models/emotion.model.js');
+        const { default: Friend } = await import('../models/friend.model.js');
+        const { default: ComfortReaction } = await import('../models/comfort-reaction.model.js');
+        const { default: VentReaction } = await import('../models/vent-reaction.model.js');
+        const { default: Vent } = await import('../models/vent.model.js');
+        const { default: VentReply } = await import('../models/vent-reply.model.js');
+        
         await Promise.all([
           Emotion.deleteMany({ user: userId }).session(session),
           Friend.deleteMany({ 
@@ -154,4 +162,4 @@ class ProfileService {
   }
 }
 
-module.exports = new ProfileService();
+export default new ProfileService();

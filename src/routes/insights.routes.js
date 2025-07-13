@@ -1,7 +1,7 @@
 import express from 'express';
 import insightsController from '../controllers/insights.controller.js';
 import { validateInsightsQuery } from '../validators/insights.validator.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 

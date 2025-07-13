@@ -1,11 +1,11 @@
-const profileService = require('../services/profile.service');
-const { createResponse } = require('../utils/response');
+import profileService from '../services/profile.service.js';
+import { createResponse } from '../utils/response.js';
 
 class SettingsController {
   async getSettings(req, res, next) {
     try {
       const userId = req.user.id;
-      const User = require('../models/user.model');
+      const { default: User } = await import('../models/user.model.js');
 
       const user = await User.findById(userId).select('settings profile.language');
       
@@ -46,7 +46,7 @@ class SettingsController {
       const userId = req.user.id;
       const { notifications } = req.body;
 
-      const User = require('../models/user.model');
+      const { default: User } = await import('../models/user.model.js');
       await User.findByIdAndUpdate(userId, {
         'settings.notifications': notifications
       });
@@ -65,7 +65,7 @@ class SettingsController {
       const userId = req.user.id;
       const { moodPrivacy } = req.body;
 
-      const User = require('../models/user.model');
+      const { default: User } = await import('../models/user.model.js');
       await User.findByIdAndUpdate(userId, {
         'settings.moodPrivacy': moodPrivacy
       });
@@ -80,4 +80,4 @@ class SettingsController {
   }
 }
 
-module.exports = new SettingsController();
+export default new SettingsController();

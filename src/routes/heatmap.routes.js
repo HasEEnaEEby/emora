@@ -1,6 +1,6 @@
 import express from 'express';
 import heatmapController from '../controllers/heatmap.controller.js';
-import validationMiddleware from '../middlewares/validation.middleware.js';
+import validationMiddleware from '../middleware/validation.middleware.js';
 import heatmapValidator from '../validators/heatmap.validator.js';
 
 const router = express.Router();

@@ -109,6 +109,31 @@ export const createStatusErrorResponse = (message, errors = null, errorCode = nu
 };
 
 /**
+ * Enhanced error class for API responses
+ */
+export class ApiError extends Error {
+  constructor(message, statusCode = 500, errors = null, code = null) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.errors = errors;
+    this.code = code;
+  }
+}
+
+/**
+ * Create and throw an error (for service layer)
+ * @param {string} message - Error message
+ * @param {number} statusCode - HTTP status code (default: 500)
+ * @param {any} errors - Additional error details
+ * @param {string} code - Error code
+ * @throws {ApiError}
+ */
+export const createError = (message, statusCode = 500, errors = null, code = null) => {
+  throw new ApiError(message, statusCode, errors, code);
+};
+
+/**
  * Send JSON response with consistent formatting
  * @param {object} res - Express response object
  * @param {number} statusCode - HTTP status code

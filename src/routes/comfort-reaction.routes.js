@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import comfortReactionController from '../controllers/comfort-reaction.controller.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { comfortReactionValidator, markReadValidator } from '../validators/comfort-reaction.validator.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
+
 const router = express.Router();
-const comfortReactionController = require('../controllers/comfort-reaction.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
-const { comfortReactionValidator, markReadValidator } = require('../validators/comfort-reaction.validator');
-const { validateRequest } = require('../middlewares/validation.middleware');
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -18,4 +19,4 @@ router.patch('/reactions/mark-read', markReadValidator, validateRequest, comfort
 router.delete('/reactions/:reactionId', comfortReactionController.deleteReaction);
 router.get('/reactions/unread-count', comfortReactionController.getUnreadReactionsCount);
 
-module.exports = router;
+export default router;

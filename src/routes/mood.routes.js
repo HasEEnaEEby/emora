@@ -1,8 +1,8 @@
 // src/routes/mood.routes.js
 import { Router } from 'express';
 import moodController from '../controllers/mood.controller.js';
-import authMiddleware from '../middlewares/auth.middleware.js';
-import { createRateLimit } from '../middlewares/rate-limit.middleware.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { createRateLimit } from '../middleware/rate-limit.middleware.js';
 import { validateMoodEntry } from '../validators/mood.validator.js';
 
 const router = Router();

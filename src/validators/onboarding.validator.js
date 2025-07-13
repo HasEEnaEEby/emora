@@ -1,7 +1,27 @@
-// src/validators/onboarding.validator.js - UPDATED VERSION
+// src/validators/onboarding.validator.js - FIXED TO MATCH BACKEND MODEL
 import Joi from 'joi';
 
 const onboardingValidator = {
+  // Username validation schema
+  username: Joi.string()
+    .alphanum()
+    .min(3)
+    .max(20)
+    .pattern(/^[a-zA-Z0-9_]+$/)
+    .custom((value, helpers) => {
+      if (value.startsWith('_') || value.endsWith('_')) {
+        return helpers.error('any.invalid', { message: 'Username cannot start or end with underscore' });
+      }
+      if (/^\d+$/.test(value)) {
+        return helpers.error('any.invalid', { message: 'Username cannot be only numbers' });
+      }
+      return value;
+    })
+    .messages({
+      'string.pattern.base': 'Username can only contain letters, numbers, and underscores',
+      'any.invalid': '{{#message}}'
+    }),
+
   // User registration validation
   registerUser: Joi.object({
     username: Joi.string()
@@ -44,17 +64,18 @@ const onboardingValidator = {
     pronouns: Joi.string()
       .valid('She / Her', 'He / Him', 'They / Them', 'Other')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
+    // FIXED: Only allow the exact values that the backend model accepts
     ageGroup: Joi.string()
-      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'less than 20s', '20s', '30s', '40s', '50s and above')
+      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
     selectedAvatar: Joi.string()
       .valid('panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
     location: Joi.string()
       .max(200)
@@ -71,7 +92,21 @@ const onboardingValidator = {
       .min(-180)
       .max(180)
       .optional()
-      .allow(null)
+      .allow(null),
+
+    termsAccepted: Joi.boolean()
+      .truthy()
+      .required()
+      .messages({
+        'any.required': 'Terms of service must be accepted'
+      }),
+
+    privacyAccepted: Joi.boolean()
+      .truthy()
+      .required()
+      .messages({
+        'any.required': 'Privacy policy must be accepted'
+      })
   }),
 
   // Username check validation
@@ -112,132 +147,55 @@ const onboardingValidator = {
       })
   }),
 
-  // Create user validation (for step-by-step onboarding)
-  createUser: Joi.object({
-    username: Joi.string()
-      .alphanum()
-      .min(3)
-      .max(20)
-      .required()
-      .pattern(/^[a-zA-Z0-9_]+$/)
-      .custom((value, helpers) => {
-        if (value.startsWith('_') || value.endsWith('_')) {
-          return helpers.error('any.invalid', { message: 'Username cannot start or end with underscore' });
-        }
-        if (/^\d+$/.test(value)) {
-          return helpers.error('any.invalid', { message: 'Username cannot be only numbers' });
-        }
-        return value;
-      })
-      .messages({
-        'string.pattern.base': 'Username can only contain letters, numbers, and underscores',
-        'any.invalid': '{{#message}}'
-      })
-  }),
-
-  // Update pronouns validation
-  updatePronouns: Joi.object({
-    pronouns: Joi.string()
-      .valid('She / Her', 'He / Him', 'They / Them', 'Other')
-      .required()
-      .messages({
-        'any.only': 'Invalid pronouns selection'
-      })
-  }),
-
-  // Update age group validation
-  updateAgeGroup: Joi.object({
-    ageGroup: Joi.string()
-      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'less than 20s', '20s', '30s', '40s', '50s and above')
-      .required()
-      .messages({
-        'any.only': 'Invalid age group selection'
-      })
-  }),
-
-  // Update avatar validation
-  updateAvatar: Joi.object({
-    avatar: Joi.string()
-      .valid('panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin')
-      .required()
-      .messages({
-        'any.only': 'Invalid avatar selection'
-      })
-  }),
-
-  // Update preferences validation
-  updatePreferences: Joi.object({
-    preferences: Joi.object({
-      shareLocation: Joi.boolean().optional(),
-      anonymousMode: Joi.boolean().optional(),
-      notifications: Joi.object({
-        dailyReminder: Joi.boolean().optional(),
-        time: Joi.string().pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-        timezone: Joi.string().optional()
-      }).optional()
-    }).required()
-  }),
-
-  // Save user data validation (anonymous onboarding)
+  // Save user data validation (anonymous onboarding - all optional)
   saveUserData: Joi.object({
-    username: Joi.string()
-      .alphanum()
-      .min(3)
-      .max(20)
-      .pattern(/^[a-zA-Z0-9_]+$/)
-      .optional()
-      .allow(null)
-      .messages({
-        'string.pattern.base': 'Username can only contain letters, numbers, and underscores'
-      }),
-    
     pronouns: Joi.string()
       .valid('She / Her', 'He / Him', 'They / Them', 'Other')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
+    // FIXED: Only allow exact backend model values
     ageGroup: Joi.string()
-      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'less than 20s', '20s', '30s', '40s', '50s and above')
+      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
     selectedAvatar: Joi.string()
       .valid('panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin')
       .optional()
-      .allow(null),
+      .allow(null, ''),
     
     isCompleted: Joi.boolean().optional(),
     completedAt: Joi.date().optional().allow(null),
     additionalData: Joi.any().optional()
   }),
 
-  // Complete onboarding validation
+  // Complete onboarding validation (requires core data but no username)
   completeOnboarding: Joi.object({
-    username: Joi.string()
-      .alphanum()
-      .min(3)
-      .max(20)
-      .pattern(/^[a-zA-Z0-9_]+$/)
-      .optional()
-      .allow(null)
-      .messages({
-        'string.pattern.base': 'Username can only contain letters, numbers, and underscores'
-      }),
-    
     pronouns: Joi.string()
       .valid('She / Her', 'He / Him', 'They / Them', 'Other')
-      .optional()
-      .allow(null),
+      .required()
+      .messages({
+        'any.required': 'Pronouns are required',
+        'any.only': 'Invalid pronouns selection'
+      }),
     
+    // FIXED: Only allow exact backend model values
     ageGroup: Joi.string()
-      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+', 'less than 20s', '20s', '30s', '40s', '50s and above')
-      .optional()
-      .allow(null),
+      .valid('Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+')
+      .required()
+      .messages({
+        'any.required': 'Age group is required',
+        'any.only': 'Invalid age group selection'
+      }),
     
     selectedAvatar: Joi.string()
       .valid('panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin')
-      .optional()
-      .allow(null),
+      .required()
+      .messages({
+        'any.required': 'Avatar is required',
+        'any.only': 'Invalid avatar selection'
+      }),
     
     isCompleted: Joi.boolean().optional(),
     completedAt: Joi.date().optional().allow(null),
@@ -248,9 +206,13 @@ const onboardingValidator = {
 // Middleware function to validate requests using Joi
 export const validateRequest = (schema) => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
+    // For URL parameters, validate params instead of body
+    const dataToValidate = Object.keys(req.params).length > 0 ? req.params : req.body;
+    
+    const { error, value } = schema.validate(dataToValidate, {
       abortEarly: false,
-      stripUnknown: true
+      stripUnknown: true,
+      allowUnknown: false
     });
 
     if (error) {
@@ -263,12 +225,18 @@ export const validateRequest = (schema) => {
       return res.status(400).json({
         status: 'error',
         message: 'Validation failed',
-        errors
+        errors,
+        errorCode: 'VALIDATION_FAILED'
       });
     }
 
-    // Replace req.body with validated and sanitized data
-    req.body = value;
+    // Replace the data with validated and sanitized version
+    if (Object.keys(req.params).length > 0) {
+      req.params = { ...req.params, ...value };
+    } else {
+      req.body = value;
+    }
+    
     next();
   };
 };

@@ -1,11 +1,8 @@
-// ============================================================================
-// SRC/SERVER.JS (ENHANCED VERSION WITH PROFESSIONAL FEATURES)
-// ============================================================================
+// src/server.js - COMPLETE FIXED VERSION WITH PROPER ROUTES
 import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import helmet from 'helmet';
 import { createServer } from 'http';
 import morgan from 'morgan';
 import net from 'net';
@@ -14,40 +11,30 @@ import connectDB from './config/db.js';
 import config from './config/index.js';
 import connectRedis from './config/redis.js';
 import setupCronJobs from './jobs/index.js';
-import errorMiddleware from './middlewares/error.middleware.js';
-import rateLimitMiddleware from './middlewares/rate-limit.middleware.js';
+import errorMiddleware from './middleware/error.middleware.js';
 import setupSocketHandlers from './sockets/index.js';
 import logger from './utils/logger.js';
 
-// Import routes (your existing + new professional routes)
-import analyticsRoutes from './routes/analytics.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import emotionRoutes from './routes/emotion.routes.js';
-import heatmapRoutes from './routes/heatmap.routes.js';
-import moodRoutes from './routes/mood.routes.js';
-import onboardingRoutes from './routes/onboarding.routes.js';
-import recommendationRoutes from './routes/recommendations.routes.js';
-
-// NEW: Import professional dashboard routes
-import dashboardRoutes from './routes/dashboard.routes.js';
-
-// NEW: Import advanced features routes
-import ventRoutes from './routes/vent.routes.js';
-import friendRoutes from './routes/friend.routes.js';
-import insightsRoutes from './routes/insights.routes.js';
+// Import main routes (organized and complete)
+import routes from './routes/index.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// ✅ ADDED: Configure server timeouts
+server.timeout = 120000; // 2 minutes
+server.keepAliveTimeout = 65000; // 65 seconds
+server.headersTimeout = 66000; // 66 seconds
+
 const io = new Server(server, {
   cors: {
     origin: config.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   },
-  // ENHANCED: Add WebSocket configuration for real-time features
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
   pingInterval: 25000
@@ -57,27 +44,13 @@ const io = new Server(server, {
 connectDB();
 connectRedis();
 
-// ENHANCED: Trust proxy for production deployments
+// Trust proxy for production deployments
 app.set('trust proxy', 1);
-
-// ENHANCED: Security middleware with better configuration
-// app.use(helmet({
-//   crossOriginEmbedderPolicy: false,
-//   contentSecurityPolicy: {
-//     directives: {
-//       defaultSrc: ["'self'"],
-//       styleSrc: ["'self'", "'unsafe-inline'"],
-//       scriptSrc: ["'self'"],
-//       imgSrc: ["'self'", "data:", "https:"],
-//       connectSrc: ["'self'", "wss:", "https:"],
-//     },
-//   }
-// }));
 
 // Temporarily disable helmet for testing
 console.log('🔓 Helmet disabled for testing');
 
-// ENHANCED: CORS with multiple origins support
+// CORS with multiple origins support
 app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
@@ -85,6 +58,8 @@ app.use(cors({
       "http://localhost:3001", 
       "http://localhost:8080",
       "http://127.0.0.1:3000",
+      "capacitor://localhost",
+      "ionic://localhost",
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
@@ -99,10 +74,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// NEW: Add compression for better performance
+// Add compression for better performance
 app.use(compression());
 
-// ENHANCED: Logging with more details
+// Logging with more details
 app.use(morgan('combined', { 
   stream: { 
     write: message => logger.info(message.trim()) 
@@ -110,7 +85,7 @@ app.use(morgan('combined', {
   skip: (req) => req.path === '/api/health'
 }));
 
-// ENHANCED: Body parsing with validation
+// Body parsing with validation
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf) => {
@@ -128,33 +103,17 @@ app.use(express.json({
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting - only apply to specific routes, not globally
-// app.use(rateLimitMiddleware); // Remove global rate limiting
-
 // Make io accessible to routes
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// API Routes (your existing routes)
-app.use('/api/auth', authRoutes);
-app.use('/api/onboarding', onboardingRoutes);
-app.use('/api/mood', moodRoutes);
-app.use('/api/heatmap', heatmapRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/recommendations', recommendationRoutes);
-app.use('/api/emotions', emotionRoutes);
+// ============================================================================
+// FIXED: ROUTE REGISTRATION WITH CORRECT PATHS
+// ============================================================================
 
-// NEW: Add professional dashboard routes
-app.use('/api/dashboard', dashboardRoutes);
-
-// NEW: Add advanced features routes
-app.use('/api/vents', ventRoutes);
-app.use('/api/friends', friendRoutes);
-app.use('/api/insights', insightsRoutes);
-
-// ENHANCED: Health check endpoint with comprehensive status
+// Root health check
 app.get('/api/health', async (req, res) => {
   try {
     const health = {
@@ -163,7 +122,7 @@ app.get('/api/health', async (req, res) => {
       environment: config.NODE_ENV || 'development',
       version: process.env.npm_package_version || '2.0.0',
       services: {
-        database: true, // You could add actual DB connection check here
+        database: true,
         redis: config.REDIS_URL ? true : false,
         socketio: true,
         scheduler: config.NODE_ENV === 'production' || process.env.ENABLE_CRON_JOBS === 'true'
@@ -196,7 +155,10 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// NEW: API Documentation endpoint
+// ✅ MOUNT ALL ROUTES (from organized routes/index.js)
+app.use('/', routes);
+
+// API Documentation endpoint
 app.get('/api/docs', (req, res) => {
   const apiDocs = {
     title: 'EMORA API Documentation',
@@ -205,89 +167,29 @@ app.get('/api/docs', (req, res) => {
     baseUrl: `${req.protocol}://${req.get('host')}/api`,
     endpoints: {
       authentication: {
-        register: 'POST /auth/register',
-        login: 'POST /auth/login',
-        logout: 'POST /auth/logout',
-        profile: 'GET /auth/profile'
+        register: 'POST /api/auth/register (with confirmPassword validation)',
+        login: 'POST /api/auth/login',
+        logout: 'POST /api/auth/logout',
+        profile: 'GET /api/auth/me',
+        checkUsername: 'GET /api/auth/check-username/:username',
+        refresh: 'POST /api/auth/refresh'
       },
       onboarding: {
         steps: 'GET /onboarding/steps',
+        checkUsername: 'GET /onboarding/check-username/:username',
         saveData: 'POST /onboarding/user-data',
-        complete: 'POST /onboarding/complete',
-        checkUsername: 'GET /onboarding/check-username/:username'
+        complete: 'POST /onboarding/complete'
+      },
+      user: {
+        homeData: 'GET /user/home-data',
+        profile: 'GET /user/profile',
+        stats: 'GET /user/stats'
       },
       emotions: {
         log: 'POST /emotions/log',
         timeline: 'GET /emotions/timeline',
-        stats: 'GET /emotions/stats',
-        globalStats: 'GET /emotions/global-stats',
-        globalHeatmap: 'GET /emotions/global-heatmap',
-        feed: 'GET /emotions/feed',
-        insights: 'GET /emotions/insights',
-        search: 'GET /emotions/search',
-        update: 'PUT /emotions/:id',
-        delete: 'DELETE /emotions/:id',
         constants: 'GET /emotions/constants'
-      },
-      dashboard: {
-        home: 'GET /dashboard/home',
-        analytics: 'GET /dashboard/analytics',
-        realtime: 'GET /dashboard/realtime'
-      },
-      vents: {
-        create: 'POST /vents',
-        feed: 'GET /vents/feed',
-        regional: 'GET /vents/regional/:country',
-        react: 'POST /vents/:ventId/react',
-        reply: 'POST /vents/:ventId/reply',
-        flag: 'POST /vents/:ventId/flag',
-        stats: 'GET /vents/stats',
-        delete: 'DELETE /vents/:ventId'
-      },
-      friends: {
-        request: 'POST /friends/request/:recipientId',
-        accept: 'POST /friends/accept/:requestId',
-        decline: 'POST /friends/decline/:requestId',
-        list: 'GET /friends',
-        pending: 'GET /friends/pending',
-        checkIn: 'POST /friends/check-in/:friendId',
-        moods: 'GET /friends/:friendId/moods',
-        remove: 'DELETE /friends/:friendId',
-        block: 'POST /friends/block/:userId',
-        stats: 'GET /friends/stats/overview'
-      },
-      insights: {
-        overview: 'GET /insights',
-        emotions: 'GET /insights/emotions',
-        patterns: {
-          weekly: 'GET /insights/patterns/weekly',
-          daily: 'GET /insights/patterns/daily'
-        },
-        streak: 'GET /insights/streak',
-        topEmotions: 'GET /insights/emotions/top',
-        trends: 'GET /insights/trends',
-        recommendations: 'GET /insights/recommendations',
-        vents: 'GET /insights/vents',
-        recap: 'GET /insights/recap',
-        global: 'GET /insights/global'
-      },
-      // Your existing endpoints
-      mood: 'Various mood endpoints',
-      heatmap: 'Various heatmap endpoints',
-      analytics: 'Various analytics endpoints',
-      recommendations: 'Various recommendation endpoints'
-    },
-    features: {
-      insideOutEmotions: 'Core emotions mapped to Inside Out characters',
-      globalHeatmap: 'Real-time global emotion visualization',
-      professionalAnalytics: 'Advanced pattern recognition and insights',
-      anonymousLogging: 'Privacy-first emotion tracking',
-      realTimeUpdates: 'WebSocket-based live updates',
-      contextualTracking: 'Weather, location, and activity correlation',
-      anonymousVenting: 'Safe space for anonymous emotional expression',
-      socialFeatures: 'Friend connections and emotional support',
-      advancedInsights: 'Personalized recommendations and mood patterns',
-      contentModeration: 'Community safety and content filtering'
+      }
     }
   };
 
@@ -298,38 +200,30 @@ app.get('/api/docs', (req, res) => {
   });
 });
 
-// ENHANCED: Root endpoint with more information
+// Root endpoint
 app.get('/', (req, res) => {
   res.json({
     success: true,
     message: '🎭 Welcome to EMORA - Professional Emotion Analytics Platform',
     version: '2.0.0',
-          features: [
-        '🎯 Inside Out emotion mapping',
-        '🌍 Global emotion heatmap',
-        '📊 Advanced analytics & insights',
-        '🔒 Privacy-first design',
-        '⚡ Real-time updates',
-        '🎨 Professional API design',
-        '💬 Anonymous venting system',
-        '👥 Social features & friend support',
-        '🧠 AI-powered insights & recommendations',
-        '🛡️ Content moderation & safety'
-      ],
+    features: [
+      '🎯 Inside Out emotion mapping',
+      '🌍 Global emotion heatmap',
+      '📊 Advanced analytics & insights',
+      '🔒 Privacy-first design',
+      '⚡ Real-time updates',
+      '🎨 Professional API design'
+    ],
     links: {
       documentation: '/api/docs',
       health: '/api/health',
-      dashboard: '/api/dashboard/home',
-      emotions: '/api/emotions/constants'
-    },
-    contact: {
-      support: 'support@emora.app',
-      documentation: 'https://docs.emora.app'
+      onboarding: '/onboarding/steps',
+      auth: '/api/auth/health'
     }
   });
 });
 
-// Socket.io setup with enhanced logging
+// Socket.io setup
 setupSocketHandlers(io);
 
 // Log WebSocket connections
@@ -352,12 +246,37 @@ if (config.NODE_ENV === 'production' || process.env.ENABLE_CRON_JOBS === 'true')
 // Error handling middleware (must be after routes)
 app.use(errorMiddleware);
 
-// ENHANCED: 404 handler for API routes
+// 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
     availableEndpoints: '/api/docs'
+  });
+});
+
+// 404 handler for onboarding routes (mobile compatibility)
+app.use('/onboarding/*', (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: `Onboarding endpoint not found: ${req.method} ${req.originalUrl}`,
+    availableEndpoints: [
+      'GET /onboarding/steps',
+      'POST /onboarding/user-data', 
+      'POST /onboarding/complete',
+      'GET /onboarding/check-username/:username'
+    ]
+  });
+});
+
+// 404 handler for user routes (mobile compatibility)
+app.use('/user/*', (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: `User endpoint not found: ${req.method} ${req.originalUrl}`,
+    availableEndpoints: [
+      'GET /user/home-data'
+    ]
   });
 });
 
@@ -371,7 +290,7 @@ app.use('*', (req, res) => {
 });
 
 // ============================================================================
-// ROBUST PORT DETECTION & SERVER STARTUP (Your existing logic is great!)
+// SERVER STARTUP LOGIC (Your existing logic is great!)
 // ============================================================================
 
 // Function to check if port is available
@@ -388,26 +307,29 @@ const isPortAvailable = (port) => {
 
 // Function to find available port
 const findAvailablePort = async (startPort = 5000, maxPort = 5010) => {
-  for (let port = startPort; port <= maxPort; port++) {
+  // ✅ Fix: Ensure maxPort is always greater than startPort
+  const actualMaxPort = Math.max(maxPort, startPort + 10);
+  
+  for (let port = startPort; port <= actualMaxPort; port++) {
     const available = await isPortAvailable(port);
     if (available) {
       return port;
     }
   }
-  throw new Error(`No available ports found between ${startPort} and ${maxPort}`);
+  throw new Error(`No available ports found between ${startPort} and ${actualMaxPort}`);
 };
 
-// ENHANCED: Server startup with professional features logging
+// Server startup
 const startServer = async () => {
   try {
-    const preferredPort = parseInt(process.env.PORT) || 5000;
+    const preferredPort = parseInt(process.env.PORT) || 8000; // Changed to 8000 for consistency
     let actualPort = preferredPort;
 
     // Check if preferred port is available
     const isPreferredPortAvailable = await isPortAvailable(preferredPort);
     
     if (!isPreferredPortAvailable) {
-      logger.warn(`⚠️  Port ${preferredPort} is busy (likely macOS ControlCenter)`);
+      logger.warn(`⚠️  Port ${preferredPort} is busy`);
       actualPort = await findAvailablePort(preferredPort + 1);
       logger.info(`🔍 Found available port: ${actualPort}`);
     }
@@ -424,17 +346,17 @@ const startServer = async () => {
       console.log(`🔴 Redis:      ${config.REDIS_URL ? 'Connected' : 'Disabled'}`);
       console.log(`📊 API Docs:   http://localhost:${actualPort}/api/docs`);
       console.log(`🏠 Dashboard:  http://localhost:${actualPort}/api/dashboard/home`);
+      console.log(`📋 Onboarding: http://localhost:${actualPort}/onboarding/steps`);
       console.log(`🎭 Emotions:   http://localhost:${actualPort}/api/emotions/constants`);
-      console.log(`🌍 Heatmap:    http://localhost:${actualPort}/api/heatmap/global`);
       console.log(`⚡ Real-time:  WebSocket enabled`);
       console.log(`📈 Analytics:  Professional features enabled`);
       console.log('🎉 ================================\n');
       
       if (actualPort !== preferredPort) {
-        logger.warn(`💡 Tip: macOS ControlCenter uses port 5000. Using ${actualPort} instead.`);
+        logger.warn(`💡 Note: Using port ${actualPort} instead of ${preferredPort}`);
       }
 
-      // NEW: Log professional features status
+      // Log professional features status
       logger.info('✅ Professional Features Enabled:');
       logger.info('   🎯 Inside Out emotion mapping');
       logger.info('   🌍 Global emotion heatmap');
@@ -469,7 +391,7 @@ const startServer = async () => {
   }
 };
 
-// ENHANCED: Graceful shutdown handling with cleanup
+// Graceful shutdown handling
 const gracefulShutdown = (signal) => {
   logger.info(`\n🛑 ${signal} received. Starting graceful shutdown...`);
   
@@ -483,21 +405,14 @@ const gracefulShutdown = (signal) => {
     io.close();
     logger.info('📡 WebSocket server closed');
     
-    // Close database connections if needed
-    if (global.mongoose && global.mongoose.connection) {
-      global.mongoose.connection.close(() => {
-        logger.info('💾 MongoDB connection closed');
-      });
-    }
-    
-    logger.info(' Server closed successfully');
-    logger.info(' EMORA Backend shutdown complete');
+    logger.info('✅ Server closed successfully');
+    logger.info('✅ EMORA Backend shutdown complete');
     process.exit(0);
   });
 
-  // Force shutdown after 30 seconds (increased for cleanup)
+  // Force shutdown after 30 seconds
   setTimeout(() => {
-    logger.error(' Forced shutdown after 30s timeout');
+    logger.error('❌ Forced shutdown after 30s timeout');
     process.exit(1);
   }, 30000);
 };
@@ -506,7 +421,7 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// ENHANCED: Handle uncaught exceptions with better logging
+// Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   logger.error('💥 Uncaught Exception:', err);
   if (config.NODE_ENV !== 'production') {

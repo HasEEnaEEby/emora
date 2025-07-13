@@ -1,8 +1,8 @@
 // src/routes/dashboard.routes.js
 import { Router } from 'express';
 import dashboardController from '../controllers/dashboard.controller.js';
-import authMiddleware from '../middlewares/auth.middleware.js';
-import { createRateLimit } from '../middlewares/rate-limit.middleware.js';
+import { authMiddleware, optionalAuth } from '../middleware/auth.middleware.js';
+import { createRateLimit } from '../middleware/rate-limit.middleware.js';
 import { validateTimeframe } from '../validators/emotion.validator.js';
 
 const router = Router();
@@ -21,7 +21,7 @@ router.use(createRateLimit(
  * @query   {cache?}
  */
 router.get('/home',
-  authMiddleware.optional,
+  optionalAuth,
   dashboardController.getHomeDashboard
 );
 
@@ -32,7 +32,7 @@ router.get('/home',
  * @query   {timeframe?}
  */
 router.get('/analytics',
-  authMiddleware.required,
+  authMiddleware,
   validateTimeframe,
   dashboardController.getAnalyticsDashboard
 );

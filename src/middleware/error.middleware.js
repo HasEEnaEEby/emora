@@ -56,6 +56,18 @@ const errorMiddleware = (err, req, res, next) => {
     error = { message, statusCode: 413 };
   }
 
+  // ✅ ADDED: Timeout errors
+  if (err.code === 'ETIMEDOUT' || err.message?.includes('timeout')) {
+    const message = 'Request timeout - please try again';
+    error = { message, statusCode: 408 };
+  }
+
+  // ✅ ADDED: Database connection errors
+  if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError') {
+    const message = 'Database connection error - please try again';
+    error = { message, statusCode: 503 };
+  }
+
   // Create error response using the correct function
   const errorResponse = createErrorResponse(
     error.message || 'Internal server error',
@@ -83,6 +95,34 @@ export const notFoundMiddleware = (req, res, next) => {
 export const asyncErrorHandler = (fn) => {
   return (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);
+  };
+};
+
+// ✅ ADDED: Timeout middleware for long-running requests
+export const timeoutMiddleware = (timeoutMs = 30000) => {
+  return (req, res, next) => {
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        logger.warn(`⚠️ Request timeout after ${timeoutMs}ms: ${req.method} ${req.originalUrl}`);
+        res.status(408).json({
+          success: false,
+          message: 'Request timeout - please try again',
+          errorCode: 'REQUEST_TIMEOUT',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }, timeoutMs);
+
+    // Clear timeout when response is sent
+    res.on('finish', () => {
+      clearTimeout(timeout);
+    });
+
+    res.on('close', () => {
+      clearTimeout(timeout);
+    });
+
+    next();
   };
 };
 

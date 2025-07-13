@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+import { body } from 'express-validator';
 
 const updateProfileValidator = [
   body('name')
@@ -46,6 +46,4 @@ const updateProfileValidator = [
     .withMessage('Language must be either "en" or "nep"')
 ];
 
-module.exports = {
-  updateProfileValidator
-};
+export { updateProfileValidator };

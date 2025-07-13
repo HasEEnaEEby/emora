@@ -37,4 +37,4 @@ ventReactionSchema.index({ user: 1, ventReply: 1, reactionType: 1 }, {
   partialFilterExpression: { ventReply: { $exists: true } } 
 });
 
-module.exports = mongoose.model('VentReaction', ventReactionSchema);
+export default mongoose.model('VentReaction', ventReactionSchema);

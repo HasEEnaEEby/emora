@@ -1,5 +1,5 @@
 import { body, param, query } from 'express-validator';
-import { validateRequest } from '../middlewares/validation.middleware.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
 
 // Vent creation validation
 export const validateVent = [

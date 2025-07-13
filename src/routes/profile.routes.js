@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import profileController from '../controllers/profile.controller.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { updateProfileValidator } from '../validators/profile.validator.js';
+import { validateRequest } from '../middleware/validation.middleware.js';
+
 const router = express.Router();
-const profileController = require('../controllers/profile.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
-const { updateProfileValidator } = require('../validators/profile.validator');
-const { validateRequest } = require('../middlewares/validation.middleware');
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
@@ -16,4 +17,4 @@ router.delete('/', profileController.deleteAccount);
 // Streak routes
 router.get('/streak', profileController.getStreakInfo);
 
-module.exports = router;
+export default router;

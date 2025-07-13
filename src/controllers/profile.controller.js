@@ -1,5 +1,5 @@
-const profileService = require('../services/profile.service');
-const { createResponse } = require('../utils/response');
+import profileService from '../services/profile.service.js';
+import { createResponse } from '../utils/response.js';
 
 class ProfileController {
   async getProfile(req, res, next) {
@@ -48,7 +48,7 @@ class ProfileController {
   async getStreakInfo(req, res, next) {
     try {
       const userId = req.user.id;
-      const User = require('../models/user.model');
+      const { default: User } = await import('../models/user.model.js');
 
       const user = await User.findById(userId).select('streaks');
       
@@ -68,4 +68,4 @@ class ProfileController {
   }
 }
 
-module.exports = new ProfileController();
+export default new ProfileController();

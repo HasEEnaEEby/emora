@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+import { body } from 'express-validator';
 
 const updateSettingsValidator = [
   body('settings.notifications')
@@ -19,6 +19,4 @@ const updateSettingsValidator = [
     .withMessage('Language must be either "en" or "nep"')
 ];
 
-module.exports = {
-  updateSettingsValidator
-};
+export { updateSettingsValidator };
