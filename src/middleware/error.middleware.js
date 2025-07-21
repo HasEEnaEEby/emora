@@ -7,7 +7,7 @@ const errorMiddleware = (err, req, res, next) => {
   error.message = err.message;
 
   // Log error
-  logger.error('❌ Error middleware triggered:', err.stack);
+  logger.error('. Error middleware triggered:', err.stack);
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
@@ -56,13 +56,13 @@ const errorMiddleware = (err, req, res, next) => {
     error = { message, statusCode: 413 };
   }
 
-  // ✅ ADDED: Timeout errors
+  // . ADDED: Timeout errors
   if (err.code === 'ETIMEDOUT' || err.message?.includes('timeout')) {
     const message = 'Request timeout - please try again';
     error = { message, statusCode: 408 };
   }
 
-  // ✅ ADDED: Database connection errors
+  // . ADDED: Database connection errors
   if (err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError') {
     const message = 'Database connection error - please try again';
     error = { message, statusCode: 503 };
@@ -85,7 +85,7 @@ const errorMiddleware = (err, req, res, next) => {
 // Handle 404 errors
 export const notFoundMiddleware = (req, res, next) => {
   const message = `Route not found: ${req.method} ${req.originalUrl}`;
-  logger.warn(`⚠️ 404 - ${message}`);
+  logger.warn(`. 404 - ${message}`);
   
   const errorResponse = createErrorResponse(message, null, 404);
   return res.status(404).json(errorResponse);
@@ -98,12 +98,12 @@ export const asyncErrorHandler = (fn) => {
   };
 };
 
-// ✅ ADDED: Timeout middleware for long-running requests
+// . ADDED: Timeout middleware for long-running requests
 export const timeoutMiddleware = (timeoutMs = 30000) => {
   return (req, res, next) => {
     const timeout = setTimeout(() => {
       if (!res.headersSent) {
-        logger.warn(`⚠️ Request timeout after ${timeoutMs}ms: ${req.method} ${req.originalUrl}`);
+        logger.warn(`. Request timeout after ${timeoutMs}ms: ${req.method} ${req.originalUrl}`);
         res.status(408).json({
           success: false,
           message: 'Request timeout - please try again',

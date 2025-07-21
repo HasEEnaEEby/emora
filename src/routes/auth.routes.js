@@ -7,7 +7,7 @@ import { validateRegistration, validateLogin } from '../validators/auth.validato
 
 const router = express.Router();
 
-// ✅ AUTHENTICATION ENDPOINTS ONLY - Clean separation of concerns
+// . AUTHENTICATION ENDPOINTS ONLY - Clean separation of concerns
 
 // User registration with confirmPassword validation
 router.post('/register', validateRegistration, AuthController.register);

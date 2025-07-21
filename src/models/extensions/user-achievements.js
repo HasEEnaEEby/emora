@@ -87,10 +87,10 @@ userSchema.methods.updateAnalytics = async function(emotionData = null) {
     
     await this.save();
     
-    console.log(`✅ Analytics updated for user ${this.username}: ${this.analytics.totalEmotionEntries} entries, ${this.analytics.currentStreak} streak`);
+    console.log(`. Analytics updated for user ${this.username}: ${this.analytics.totalEmotionEntries} entries, ${this.analytics.currentStreak} streak`);
     
   } catch (error) {
-    console.error('❌ Error updating user analytics:', error);
+    console.error('. Error updating user analytics:', error);
   }
 };
 
@@ -205,7 +205,7 @@ userSchema.methods.checkAndUpdateAchievements = async function() {
     return newAchievements;
     
   } catch (error) {
-    console.error('❌ Error checking achievements:', error);
+    console.error('. Error checking achievements:', error);
     return [];
   }
 };

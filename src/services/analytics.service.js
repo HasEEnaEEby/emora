@@ -9,7 +9,7 @@ try {
   const cacheModule = await import('../utils/cache.js');
   cacheService = cacheModule.default;
 } catch (error) {
-  logger.warn('⚠️ Cache service not available, using in-memory fallback');
+  logger.warn('. Cache service not available, using in-memory fallback');
 }
 
 class AnalyticsService {

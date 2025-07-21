@@ -68,7 +68,7 @@ class OnboardingController {
       }
     ];
 
-    logger.info('📋 Onboarding steps requested');
+    logger.info('. Onboarding steps requested');
 
     return res.status(200).json({
       status: 'success',
@@ -162,7 +162,7 @@ class OnboardingController {
       sessionId: req.sessionID || `anonymous_${Date.now()}`
     };
 
-    logger.info(`✅ Anonymous onboarding completed: ${JSON.stringify(completedData)}`);
+    logger.info(`. Anonymous onboarding completed: ${JSON.stringify(completedData)}`);
 
     return res.status(200).json({
       status: 'success',
@@ -241,7 +241,7 @@ class OnboardingController {
     const userData = {
       username: normalizedUsername,
       email: normalizedEmail,
-      password: password, // ✅ FIXED: Let the model handle password hashing
+      password: password, // . FIXED: Let the model handle password hashing
       pronouns: pronouns || 'They / Them',
       ageGroup: ageGroup || '18-24',
       selectedAvatar: selectedAvatar || 'panda',
@@ -267,7 +267,7 @@ class OnboardingController {
       };
     }
 
-    logger.info('💾 Creating user:', {
+    logger.info('. Creating user:', {
       username: userData.username,
       email: userData.email,
       pronouns: userData.pronouns,
@@ -280,7 +280,7 @@ class OnboardingController {
       const newUser = new User(userData);
       const savedUser = await newUser.save();
 
-      logger.info('✅ User saved successfully:', savedUser.username);
+      logger.info('. User saved successfully:', savedUser.username);
 
       // Generate JWT token
       const token = jwt.sign(
@@ -371,7 +371,7 @@ class OnboardingController {
     });
 
     if (!user) {
-      logger.warn(`❌ Login failed - user not found: ${username}`);
+      logger.warn(`. Login failed - user not found: ${username}`);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid username or password',
@@ -379,11 +379,11 @@ class OnboardingController {
       });
     }
 
-    // ✅ FIXED: Use the model's comparePassword method
+    // . FIXED: Use the model's comparePassword method
     const isPasswordValid = await user.comparePassword(password);
 
     if (!isPasswordValid) {
-      logger.warn(`❌ Login failed - invalid password: ${username}`);
+      logger.warn(`. Login failed - invalid password: ${username}`);
       return res.status(401).json({
         status: 'error',
         message: 'Invalid username or password',
@@ -406,7 +406,7 @@ class OnboardingController {
     user.lastLoginAt = new Date();
     await user.save();
 
-    logger.info(`✅ User logged in successfully: ${user.username}`);
+    logger.info(`. User logged in successfully: ${user.username}`);
 
     // Return user data (excluding password)
     const userResponse = {

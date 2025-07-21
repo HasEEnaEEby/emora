@@ -17,7 +17,7 @@ class AuthController {
         username, 
         email, 
         password, 
-        confirmPassword, // ✅ Added confirmPassword
+        confirmPassword, // . Added confirmPassword
         pronouns, 
         ageGroup, 
         selectedAvatar, 
@@ -33,7 +33,7 @@ class AuthController {
         return errorResponse(res, 'Username and password are required', 400);
       }
 
-      // ✅ Password confirmation validation
+      // . Password confirmation validation
       if (!confirmPassword) {
         return errorResponse(res, 'Password confirmation is required', 400, 'CONFIRM_PASSWORD_MISSING');
       }
@@ -72,7 +72,7 @@ class AuthController {
       const userData = {
         username: normalizedUsername,
         email: email ? email.toLowerCase().trim() : null,
-        password: password, // ✅ FIXED: Let the model handle password hashing
+        password: password, // . FIXED: Let the model handle password hashing
         pronouns: pronouns || null,
         ageGroup: ageGroup || null,
         selectedAvatar: selectedAvatar || 'panda',
@@ -118,7 +118,7 @@ class AuthController {
         updatedAt: newUser.updatedAt
       };
 
-      console.log('✅ User registered successfully:', responseUser.username);
+      console.log('. User registered successfully:', responseUser.username);
 
       return successResponse(res, {
         message: 'User registered successfully',
@@ -130,7 +130,7 @@ class AuthController {
       }, 201);
 
     } catch (error) {
-      console.error('❌ Registration error:', error);
+      console.error('. Registration error:', error);
       return errorResponse(res, 'Registration failed', 500, error.message);
     }
   };
@@ -142,60 +142,60 @@ login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    console.log('🔍 DEBUG: Login attempt started');
-    console.log('🔍 DEBUG: Username:', username);
-    console.log('🔍 DEBUG: Password length:', password ? password.length : 'NO PASSWORD');
+    console.log('. DEBUG: Login attempt started');
+    console.log('. DEBUG: Username:', username);
+    console.log('. DEBUG: Password length:', password ? password.length : 'NO PASSWORD');
 
     if (!username || !password) {
       return errorResponse(res, 'Username and password are required', 400);
     }
 
     const normalizedUsername = username.toLowerCase().trim();
-    console.log('🔍 DEBUG: Normalized username:', normalizedUsername);
+    console.log('. DEBUG: Normalized username:', normalizedUsername);
 
     // Find user by username
     const user = await User.findOne({ username: username });
-    console.log('🔍 DEBUG: User found:',user);
+    console.log('. DEBUG: User found:',user);
     
     if (user) {
-      console.log('🔍 DEBUG: User ID:', user._id);
-      console.log('🔍 DEBUG: User has password:', !!user.password);
-      console.log('🔍 DEBUG: Password hash length:', user.password ? user.password.length : 'NO HASH');
-      console.log('🔍 DEBUG: User is locked:', user.isLocked);
+      console.log('. DEBUG: User ID:', user._id);
+      console.log('. DEBUG: User has password:', !!user.password);
+      console.log('. DEBUG: Password hash length:', user.password ? user.password.length : 'NO HASH');
+      console.log('. DEBUG: User is locked:', user.isLocked);
     }
 
     if (!user) {
-      console.log('❌ DEBUG: User not found in database');
+      console.log('. DEBUG: User not found in database');
       return errorResponse(res, 'Invalid username or password', 401);
     }
 
     // Check if account is locked
     if (user.isLocked) {
-      console.log('❌ DEBUG: Account is locked');
+      console.log('. DEBUG: Account is locked');
       return errorResponse(res, 'Account temporarily locked due to too many failed attempts', 423);
     }
 
     // Debug password comparison
-    console.log('🔍 DEBUG: About to compare passwords');
-    console.log('🔍 DEBUG: Input password:', password);
-    console.log('🔍 DEBUG: Stored hash starts with:', user.password ? user.password.substring(0, 10) : 'NO HASH');
+    console.log('. DEBUG: About to compare passwords');
+    console.log('. DEBUG: Input password:', password);
+    console.log('. DEBUG: Stored hash starts with:', user.password ? user.password.substring(0, 10) : 'NO HASH');
 
     // Test direct bcrypt comparison
     const directBcryptTest = await bcrypt.compare(password, user.password || '');
-    console.log('🔍 DEBUG: Direct bcrypt result:', directBcryptTest);
+    console.log('. DEBUG: Direct bcrypt result:', directBcryptTest);
 
     // Test model method
     const isPasswordValid = await user.comparePassword(password);
-    console.log('🔍 DEBUG: Model method result:', isPasswordValid);
+    console.log('. DEBUG: Model method result:', isPasswordValid);
 
     if (!isPasswordValid) {
-      console.log('❌ DEBUG: Password validation failed');
+      console.log('. DEBUG: Password validation failed');
       // Increment login attempts
       await user.incLoginAttempts();
       return errorResponse(res, 'Invalid username or password', 401);
     }
 
-    console.log('✅ DEBUG: Password validation successful, generating token...');
+    console.log('. DEBUG: Password validation successful, generating token...');
 
     // Reset login attempts on successful login
     if (user.loginAttempts > 0) {
@@ -233,7 +233,7 @@ login = async (req, res) => {
       updatedAt: user.updatedAt
     };
 
-    console.log('✅ DEBUG: Login successful for user:', user.username);
+    console.log('. DEBUG: Login successful for user:', user.username);
 
     return successResponse(res, {
       message: 'Login successful',
@@ -245,7 +245,7 @@ login = async (req, res) => {
     }, 200);
 
   } catch (error) {
-    console.error('❌ Login error:', error);
+    console.error('. Login error:', error);
     return errorResponse(res, 'Login failed', 500, error.message);
   }
 };
@@ -284,7 +284,7 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Username check error:', error);
+      console.error('. Username check error:', error);
       return errorResponse(res, 'Username check failed', 500, error.message);
     }
   };
@@ -311,7 +311,7 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Get current user error:', error);
+      console.error('. Get current user error:', error);
       return errorResponse(res, 'Failed to get current user', 500, error.message);
     }
   };
@@ -342,7 +342,7 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Logout error:', error);
+      console.error('. Logout error:', error);
       return errorResponse(res, 'Logout failed', 500, error.message);
     }
   };
@@ -426,14 +426,14 @@ login = async (req, res) => {
         });
 
       } catch (transactionError) {
-        console.error('❌ Account deletion transaction failed:', transactionError);
+        console.error('. Account deletion transaction failed:', transactionError);
         return errorResponse(res, 'Account deletion failed', 500, transactionError.message);
       } finally {
         await session.endSession();
       }
 
     } catch (error) {
-      console.error('❌ Account deletion error:', error);
+      console.error('. Account deletion error:', error);
       return errorResponse(res, 'Account deletion failed', 500, error.message);
     }
   };
@@ -475,7 +475,7 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Token refresh error:', error);
+      console.error('. Token refresh error:', error);
       return errorResponse(res, 'Token refresh failed', 401, error.message);
     }
   };
@@ -503,15 +503,15 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Health check error:', error);
+      console.error('. Health check error:', error);
       return errorResponse(res, 'Auth service health check failed', 503, error.message);
     }
   };
 
-  // ✅ Alias for checkUsername to match route expectations
+  // . Alias for checkUsername to match route expectations
   checkUsernameAvailability = this.checkUsername;
 
-  // ✅ Password reset functionality
+  // . Password reset functionality
   forgotPassword = async (req, res) => {
     try {
       const { email } = req.body;
@@ -534,12 +534,12 @@ login = async (req, res) => {
       }
 
     } catch (error) {
-      console.error('❌ Forgot password error:', error);
+      console.error('. Forgot password error:', error);
       return errorResponse(res, 'Password reset request failed', 500, error.message);
     }
   };
 
-  // ✅ Reset password with token
+  // . Reset password with token
   resetPassword = async (req, res) => {
     try {
       const { token, newPassword, confirmPassword } = req.body;
@@ -557,12 +557,12 @@ login = async (req, res) => {
       return errorResponse(res, 'Password reset functionality coming soon', 501);
 
     } catch (error) {
-      console.error('❌ Reset password error:', error);
+      console.error('. Reset password error:', error);
       return errorResponse(res, 'Password reset failed', 500, error.message);
     }
   };
 
-  // ✅ Email verification
+  // . Email verification
   verifyEmail = async (req, res) => {
     try {
       const { token } = req.body;
@@ -576,12 +576,12 @@ login = async (req, res) => {
       return errorResponse(res, 'Email verification functionality coming soon', 501);
 
     } catch (error) {
-      console.error('❌ Email verification error:', error);
+      console.error('. Email verification error:', error);
       return errorResponse(res, 'Email verification failed', 500, error.message);
     }
   };
 
-  // ✅ Resend verification email
+  // . Resend verification email
   resendVerification = async (req, res) => {
     try {
       const { email } = req.body;
@@ -607,7 +607,7 @@ login = async (req, res) => {
       });
 
     } catch (error) {
-      console.error('❌ Resend verification error:', error);
+      console.error('. Resend verification error:', error);
       return errorResponse(res, 'Failed to resend verification email', 500, error.message);
     }
   };

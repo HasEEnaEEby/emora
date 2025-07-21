@@ -23,7 +23,7 @@ const moodSchema = new mongoose.Schema({
     default: 3
   },
   
-  // ✅ UPDATED: Location is now optional based on user consent
+  // . UPDATED: Location is now optional based on user consent
   location: {
     // Location consent tracking
     hasUserConsent: {
@@ -43,7 +43,7 @@ const moodSchema = new mongoose.Schema({
     },
     coordinates: {
       type: [Number], // [longitude, latitude]
-      required: false, // ✅ CHANGED: Now optional
+      required: false, // . CHANGED: Now optional
       validate: {
         validator: function(coords) {
           if (!coords || coords.length === 0) return true; // Allow empty if no consent
@@ -58,7 +58,7 @@ const moodSchema = new mongoose.Schema({
     // Address components (optional)
     city: {
       type: String,
-      required: false, // ✅ CHANGED: Now optional
+      required: false, // . CHANGED: Now optional
       trim: true,
       default: null
     },
@@ -69,13 +69,13 @@ const moodSchema = new mongoose.Schema({
     },
     country: {
       type: String,
-      required: false, // ✅ CHANGED: Now optional
+      required: false, // . CHANGED: Now optional
       trim: true,
       default: null
     },
     continent: {
       type: String,
-      required: false, // ✅ CHANGED: Now optional
+      required: false, // . CHANGED: Now optional
       trim: true,
       default: null
     },
@@ -304,7 +304,7 @@ const moodSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// ✅ ENHANCED: Updated indexes for better location-based analytics
+// . ENHANCED: Updated indexes for better location-based analytics
 moodSchema.index({ location: '2dsphere' });
 moodSchema.index({ userId: 1, createdAt: -1 });
 moodSchema.index({ emotion: 1, createdAt: -1 });
@@ -316,7 +316,7 @@ moodSchema.index({ 'context.activityType': 1, emotion: 1 });
 moodSchema.index({ triggers: 1, emotion: 1 });
 moodSchema.index({ privacy: 1, createdAt: -1 });
 
-// ✅ ENHANCED: Better location-based analytics
+// . ENHANCED: Better location-based analytics
 moodSchema.statics.getNearbyMoodStats = function(coordinates, radiusKm = 50, filter = {}) {
   const radiusInRadians = radiusKm / 6371; // Earth's radius in km
   
@@ -386,7 +386,7 @@ moodSchema.statics.getLocationBasedSuggestions = function(userId, location) {
   ]);
 };
 
-// ✅ NEW: Smart location sharing based on user preferences
+// . NEW: Smart location sharing based on user preferences
 moodSchema.methods.getSharedLocationData = function() {
   if (!this.location.hasUserConsent) {
     return null;
@@ -428,7 +428,7 @@ moodSchema.methods.getSharedLocationData = function() {
   }
 };
 
-// ✅ NEW: Enhanced suggestion tracking
+// . NEW: Enhanced suggestion tracking
 moodSchema.methods.trackSuggestionShown = function(suggestionType) {
   this.analytics.suggestionsShown.push({
     type: suggestionType,
@@ -446,7 +446,7 @@ moodSchema.methods.trackSuggestionUsed = function(suggestionType, effectiveness)
   return this.save();
 };
 
-// ✅ ENHANCED: Pre-save middleware with better time categorization
+// . ENHANCED: Pre-save middleware with better time categorization
 moodSchema.pre('save', function(next) {
   const now = this.createdAt || new Date();
   const hour = now.getHours();

@@ -15,7 +15,7 @@ async function testProfileUpdate() {
     });
 
     const token = loginResponse.data.data.token;
-    console.log('✅ Login successful');
+    console.log('. Login successful');
 
     // Step 2: Get current profile
     console.log('\n2️⃣ Getting current profile...');
@@ -23,7 +23,7 @@ async function testProfileUpdate() {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log('📊 Current profile data:');
+    console.log('. Current profile data:');
     console.log(JSON.stringify(getProfileResponse.data.data, null, 2));
 
     // Step 3: Update profile with new data
@@ -43,8 +43,8 @@ async function testProfileUpdate() {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log('✅ Profile update successful');
-    console.log('📊 Updated profile response:');
+    console.log('. Profile update successful');
+    console.log('. Updated profile response:');
     console.log(JSON.stringify(updateResponse.data.data, null, 2));
 
     // Step 4: Verify the update by getting profile again
@@ -53,7 +53,7 @@ async function testProfileUpdate() {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log('📊 Verified profile data:');
+    console.log('. Verified profile data:');
     console.log(JSON.stringify(verifyResponse.data.data, null, 2));
 
     // Step 5: Test with different data
@@ -73,20 +73,20 @@ async function testProfileUpdate() {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    console.log('✅ Second profile update successful');
-    console.log('📊 Second update response:');
+    console.log('. Second profile update successful');
+    console.log('. Second update response:');
     console.log(JSON.stringify(updateResponse2.data.data, null, 2));
 
     console.log('\n🎉 All profile update tests passed!');
-    console.log('\n📋 Summary:');
-    console.log('- Login: ✅');
-    console.log('- Get Profile: ✅');
-    console.log('- Update Profile: ✅');
-    console.log('- Verify Update: ✅');
-    console.log('- Multiple Updates: ✅');
+    console.log('\n. Summary:');
+    console.log('- Login: .');
+    console.log('- Get Profile: .');
+    console.log('- Update Profile: .');
+    console.log('- Verify Update: .');
+    console.log('- Multiple Updates: .');
 
   } catch (error) {
-    console.error('❌ Test failed:', error.response?.data || error.message);
+    console.error('. Test failed:', error.response?.data || error.message);
     process.exit(1);
   }
 }

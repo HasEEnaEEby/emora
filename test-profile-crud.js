@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8000';
-const TEST_USERNAME = '0to1e'; // ✅ UPDATED: Correct username
-const TEST_PASSWORD = 'Rohan@123'; // ✅ UPDATED: Correct password
+const TEST_USERNAME = '0to1e'; // . UPDATED: Correct username
+const TEST_PASSWORD = 'Rohan@123'; // . UPDATED: Correct password
 
 let authToken = null;
 
@@ -14,27 +14,27 @@ async function login() {
   try {
     console.log('🔐 Logging in...');
     const response = await axios.post(`${BASE_URL}/api/auth/login`, {
-      username: TEST_USERNAME, // ✅ FIXED: Use username instead of email
+      username: TEST_USERNAME, // . FIXED: Use username instead of email
       password: TEST_PASSWORD
     });
 
     if (response.data.success) {
       authToken = response.data.data.token;
-      console.log('✅ Login successful');
+      console.log('. Login successful');
       return true;
     } else {
-      console.log('❌ Login failed:', response.data.message);
+      console.log('. Login failed:', response.data.message);
       return false;
     }
   } catch (error) {
-    console.log('❌ Login error:', error.response?.data || error.message);
+    console.log('. Login error:', error.response?.data || error.message);
     return false;
   }
 }
 
 async function testGetProfile() {
   try {
-    console.log('\n📊 Testing GET /api/user/profile...');
+    console.log('\n. Testing GET /api/user/profile...');
     const response = await axios.get(`${BASE_URL}/api/user/profile`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -44,8 +44,8 @@ async function testGetProfile() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Profile retrieved successfully');
-      console.log('📋 Profile data:', {
+      console.log('. Profile retrieved successfully');
+      console.log('. Profile data:', {
         username: data.data.user.username,
         selectedAvatar: data.data.user.selectedAvatar,
         pronouns: data.data.user.pronouns,
@@ -53,11 +53,11 @@ async function testGetProfile() {
       });
       return true;
     } else {
-      console.log('❌ Profile fetch failed:', data.message);
+      console.log('. Profile fetch failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Profile fetch error:', error.response?.data || error.message);
+    console.error('. Profile fetch error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -74,7 +74,7 @@ async function testGetAchievements() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Achievements retrieved successfully');
+      console.log('. Achievements retrieved successfully');
       console.log('🏆 Achievements data:', {
         totalEarned: data.data.totalEarned,
         totalAvailable: data.data.totalAvailable,
@@ -93,11 +93,11 @@ async function testGetAchievements() {
       
       return true;
     } else {
-      console.log('❌ Achievements fetch failed:', data.message);
+      console.log('. Achievements fetch failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Achievements fetch error:', error.response?.data || error.message);
+    console.error('. Achievements fetch error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -126,15 +126,15 @@ async function testUpdateProfile() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Profile updated successfully');
-      console.log('📋 Updated profile:', data.data.user);
+      console.log('. Profile updated successfully');
+      console.log('. Updated profile:', data.data.user);
       return true;
     } else {
-      console.log('❌ Profile update failed:', data.message);
+      console.log('. Profile update failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Profile update error:', error.response?.data || error.message);
+    console.error('. Profile update error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -168,15 +168,15 @@ async function testUpdatePreferences() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Preferences updated successfully');
+      console.log('. Preferences updated successfully');
       console.log('⚙️ Updated preferences:', data.data.preferences);
       return true;
     } else {
-      console.log('❌ Preferences update failed:', data.message);
+      console.log('. Preferences update failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Preferences update error:', error.response?.data || error.message);
+    console.error('. Preferences update error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -198,7 +198,7 @@ async function testExportData() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Data export initiated successfully');
+      console.log('. Data export initiated successfully');
       console.log('📦 Export data:', {
         exportId: data.data.exportId,
         estimatedSize: data.data.estimatedSize,
@@ -207,11 +207,11 @@ async function testExportData() {
       });
       return true;
     } else {
-      console.log('❌ Data export failed:', data.message);
+      console.log('. Data export failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Data export error:', error.response?.data || error.message);
+    console.error('. Data export error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -228,15 +228,15 @@ async function testGetStats() {
     const data = response.data;
     
     if (data.success) {
-      console.log('✅ Stats retrieved successfully');
-      console.log('📊 Stats data:', data.data.statistics);
+      console.log('. Stats retrieved successfully');
+      console.log('. Stats data:', data.data.statistics);
       return true;
     } else {
-      console.log('❌ Stats fetch failed:', data.message);
+      console.log('. Stats fetch failed:', data.message);
       return false;
     }
   } catch (error) {
-    console.error('❌ Stats fetch error:', error.response?.data || error.message);
+    console.error('. Stats fetch error:', error.response?.data || error.message);
     return false;
   }
 }
@@ -247,7 +247,7 @@ async function runAllTests() {
   // Login first
   const loginSuccess = await login();
   if (!loginSuccess) {
-    console.log('❌ Cannot proceed without login');
+    console.log('. Cannot proceed without login');
     return;
   }
 
@@ -268,20 +268,20 @@ async function runAllTests() {
       const success = await test.test();
       results.push({ name: test.name, success });
     } catch (error) {
-      console.error(`❌ Error in ${test.name}:`, error);
+      console.error(`. Error in ${test.name}:`, error);
       results.push({ name: test.name, success: false });
     }
   }
 
   // Summary
-  console.log('\n📋 Test Results Summary:');
+  console.log('\n. Test Results Summary:');
   console.log('========================');
   
   const passed = results.filter(r => r.success).length;
   const total = results.length;
   
   results.forEach(result => {
-    const status = result.success ? '✅' : '❌';
+    const status = result.success ? '.' : '.';
     console.log(`${status} ${result.name}`);
   });
   
@@ -290,7 +290,7 @@ async function runAllTests() {
   if (passed === total) {
     console.log('🎉 All profile CRUD operations are working correctly!');
   } else {
-    console.log('⚠️ Some tests failed. Check the logs above for details.');
+    console.log('. Some tests failed. Check the logs above for details.');
   }
 }
 

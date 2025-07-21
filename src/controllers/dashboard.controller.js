@@ -2,7 +2,7 @@
 import { errorResponse, successResponse } from '../utils/response.js';
 
 class DashboardController {
-  // ✅ Get comprehensive home dashboard data
+  // . Get comprehensive home dashboard data
   getHomeDashboard = async (req, res) => {
     try {
       const user = req.user || null;
@@ -44,7 +44,7 @@ class DashboardController {
     }
   };
 
-  // ✅ Get detailed analytics dashboard
+  // . Get detailed analytics dashboard
   getAnalyticsDashboard = async (req, res) => {
     try {
       const { timeframe = '30d' } = req.query;
@@ -88,7 +88,7 @@ class DashboardController {
     }
   };
 
-  // ✅ Get real-time dashboard updates
+  // . Get real-time dashboard updates
   getRealtimeUpdates = async (req, res) => {
     try {
       const { lastUpdate } = req.query;
@@ -133,7 +133,7 @@ class DashboardController {
     }
   };
 
-  // ✅ Get lightweight dashboard summary
+  // . Get lightweight dashboard summary
   getDashboardSummary = async (req, res) => {
     try {
       const summary = {
@@ -165,7 +165,7 @@ class DashboardController {
     }
   };
 
-  // ✅ Get user-specific dashboard widgets
+  // . Get user-specific dashboard widgets
   getUserWidgets = async (req, res) => {
     try {
       const widgets = {
@@ -201,7 +201,7 @@ class DashboardController {
     }
   };
 
-  // ✅ Update dashboard configuration
+  // . Update dashboard configuration
   updateDashboardConfig = async (req, res) => {
     try {
       const { widgets, theme, layout } = req.body;

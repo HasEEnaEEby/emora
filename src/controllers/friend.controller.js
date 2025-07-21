@@ -2,6 +2,7 @@ import User from '../models/user.model.js';
 import logger from '../utils/logger.js';
 import Mood from '../models/mood.model.js';
 import CommunityPost from '../models/community-post.model.js';
+import ComfortReaction from '../models/comfort-reaction.model.js';
 
 class FriendController {
   
@@ -74,19 +75,95 @@ class FriendController {
     }
   }
   
+  // Search all users (including friends, but NOT self)
+  async searchAllUsers(req, res) {
+    try {
+      const { query, page = 1, limit = 10 } = req.query;
+      if (!query || query.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Search query is required'
+        });
+      }
+
+      // Exclude self from results
+      const users = await User.find({
+        _id: { $ne: req.user.id }, // Exclude self
+        $or: [
+          { username: { $regex: query, $options: 'i' } },
+          { 'profile.displayName': { $regex: query, $options: 'i' } }
+        ],
+        isActive: true
+      })
+      .select('username profile.displayName selectedAvatar location isOnline profile.ageGroup profile.pronouns profile.activityLevel lastActiveAt')
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+      // Get current user to check friendship status
+      const currentUser = await User.findById(req.user.id).select('friends friendRequests');
+
+      // Map users with all required fields
+      const usersWithDetails = users.map(user => {
+        // Check if already friends
+        const isFriend = currentUser.friends.some(f => f.userId.toString() === user._id.toString());
+        
+        // Check if request already sent
+        const isRequested = currentUser.friendRequests.sent.some(r => r.userId.toString() === user._id.toString());
+        
+        // Check if request received
+        const isRequestReceived = currentUser.friendRequests.received.some(r => r.userId.toString() === user._id.toString());
+
+        return {
+          id: user._id,
+          username: user.username,
+          displayName: user.profile?.displayName || user.username,
+          selectedAvatar: user.selectedAvatar,
+          location: user.location,
+          isOnline: user.isOnline,
+          // Add required fields for FriendSuggestionEntity
+          mutualFriends: 0, // Will be calculated if needed
+          commonInterests: [], // Will be populated if needed
+          isRequested: isRequested,
+          ageGroup: user.profile?.ageGroup || 'Unknown',
+          pronouns: user.profile?.pronouns || 'They / Them',
+          activityLevel: user.profile?.activityLevel || 0,
+          lastActive: user.lastActiveAt || new Date(),
+          suggestionType: 'search'
+        };
+      });
+
+      res.json({
+        success: true,
+        data: {
+          users: usersWithDetails,
+          total: users.length,
+          page: parseInt(page),
+          totalPages: Math.ceil(users.length / limit)
+        }
+      });
+    } catch (error) {
+      logger.error('Error searching all users:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to search all users',
+        error: error.message
+      });
+    }
+  }
+  
   // Send friend request - FIXED VERSION
   async sendFriendRequest(req, res) {
-    console.log('🔍 1. Friend request started');
+    console.log('. 1. Friend request started');
     
     try {
       const { recipientId } = req.params;
       const currentUserId = req.user.id;
       
-      console.log('🔍 2. Parameters:', { recipientId, currentUserId });
+      console.log('. 2. Parameters:', { recipientId, currentUserId });
       
       // Validation checks with proper returns
       if (!recipientId) {
-        console.log('🔍 3. Missing recipientId');
+        console.log('. 3. Missing recipientId');
         return res.status(400).json({
           success: false,
           message: 'Recipient ID is required'
@@ -94,31 +171,31 @@ class FriendController {
       }
 
       if (recipientId === currentUserId) {
-        console.log('🔍 4. Cannot send to self');
+        console.log('. 4. Cannot send to self');
         return res.status(400).json({
           success: false,
           message: 'Cannot send friend request to yourself'
         });
       }
       
-      console.log('🔍 5. Starting database operations...');
+      console.log('. 5. Starting database operations...');
       
       // Check if target user exists
       const targetUser = await User.findById(recipientId).select('_id');
       if (!targetUser) {
-        console.log('🔍 6. Target user not found');
+        console.log('. 6. Target user not found');
         return res.status(404).json({
           success: false,
           message: 'User not found'
         });
       }
       
-      console.log('🔍 6. Target user found');
+      console.log('. 6. Target user found');
       
       // Get current user
       const currentUser = await User.findById(currentUserId).select('friends friendRequests');
       
-      console.log('🔍 7. Current user found');
+      console.log('. 7. Current user found');
       
       // Check existing friendship
       const isAlreadyFriend = currentUser.friends.some(
@@ -126,14 +203,14 @@ class FriendController {
       );
       
       if (isAlreadyFriend) {
-        console.log('🔍 8. Already friends');
+        console.log('. 8. Already friends');
         return res.status(400).json({
           success: false,
           message: 'Already friends with this user'
         });
       }
       
-      console.log('🔍 8. Not already friends');
+      console.log('. 8. Not already friends');
       
       // Check existing sent request
       const alreadySent = currentUser.friendRequests.sent.some(
@@ -141,14 +218,14 @@ class FriendController {
       );
       
       if (alreadySent) {
-        console.log('🔍 9. Request already sent');
+        console.log('. 9. Request already sent');
         return res.status(400).json({
           success: false,
           message: 'Friend request already sent'
         });
       }
       
-      console.log('🔍 9. No existing request found');
+      console.log('. 9. No existing request found');
       
       // Send the friend request - SIMPLIFIED
       await User.findByIdAndUpdate(currentUserId, {
@@ -160,7 +237,7 @@ class FriendController {
         }
       });
       
-      console.log('🔍 10. Updated sender');
+      console.log('. 10. Updated sender');
       
       await User.findByIdAndUpdate(recipientId, {
         $push: {
@@ -171,10 +248,10 @@ class FriendController {
         }
       });
       
-      console.log('🔍 11. Updated recipient');
+      console.log('. 11. Updated recipient');
       
       // Send success response
-      console.log('🔍 12. Sending success response');
+      console.log('. 12. Sending success response');
       return res.status(201).json({
         success: true,
         message: 'Friend request sent successfully',
@@ -185,7 +262,7 @@ class FriendController {
       });
       
     } catch (error) {
-      console.error('🔍 ERROR in sendFriendRequest:', error);
+      console.error('. ERROR in sendFriendRequest:', error);
       
       // Only send response if not already sent
       if (!res.headersSent) {
@@ -218,7 +295,7 @@ class FriendController {
         });
       }
 
-      // ✅ SIMPLIFIED: Use simple findById operation for better performance
+      // . SIMPLIFIED: Use simple findById operation for better performance
       const currentUser = await User.findById(currentUserId).select('friendRequests friends');
 
       if (!currentUser) {
@@ -241,7 +318,7 @@ class FriendController {
       }
       
       if (action === 'accept') {
-        // ✅ SIMPLIFIED: Use simple updateOne operations for better performance
+        // . SIMPLIFIED: Use simple updateOne operations for better performance
         await Promise.all([
           User.updateOne(
             { _id: currentUserId },
@@ -285,7 +362,7 @@ class FriendController {
 
         logger.info(`Friend request accepted: ${requestUserId} and ${currentUserId} are now friends`);
       } else {
-        // ✅ SIMPLIFIED: Use simple updateOne operations for better performance
+        // . SIMPLIFIED: Use simple updateOne operations for better performance
         await Promise.all([
           User.updateOne(
             { _id: currentUserId },
@@ -366,10 +443,52 @@ class FriendController {
         })
         .sort((a, b) => new Date(b.friendshipDate) - new Date(a.friendshipDate));
 
+      // Get recent mood for each friend
+      const friendsWithMoods = await Promise.all(
+        friends.map(async (friend) => {
+          try {
+            // Get the most recent mood for this friend
+            const recentMood = await Mood.findOne({
+              userId: friend.id,
+              privacy: { $in: ['friends', 'public'] }
+            })
+            .sort({ createdAt: -1 })
+            .limit(1);
+
+            if (recentMood) {
+              friend.recentMood = {
+                id: recentMood._id,
+                emotion: recentMood.emotion,
+                intensity: recentMood.intensity,
+                note: recentMood.note,
+                timestamp: recentMood.createdAt,
+                privacy: recentMood.privacy,
+                location: recentMood.location,
+                context: recentMood.context,
+                triggers: recentMood.triggers,
+                coping_strategies: recentMood.coping_strategies,
+                reactions: recentMood.reactions || [],
+                friend: {
+                  id: friend.id,
+                  username: friend.username,
+                  displayName: friend.displayName,
+                  selectedAvatar: friend.selectedAvatar
+                }
+              };
+            }
+          } catch (error) {
+            logger.error(`Error getting recent mood for friend ${friend.id}:`, error);
+            // Continue without mood data if there's an error
+          }
+          
+          return friend;
+        })
+      );
+
       // Pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + parseInt(limit);
-      const paginatedFriends = friends.slice(startIndex, endIndex);
+      const paginatedFriends = friendsWithMoods.slice(startIndex, endIndex);
       
       res.json({
         success: true,
@@ -1297,7 +1416,7 @@ class FriendController {
         });
       }
 
-      // ✅ FIXED: Remove from BOTH sender's sent requests AND recipient's received requests
+      // . FIXED: Remove from BOTH sender's sent requests AND recipient's received requests
       await Promise.all([
         // Remove from sender's sent requests
         User.findByIdAndUpdate(currentUserId, {
@@ -1334,7 +1453,7 @@ class FriendController {
     try {
       const currentUserId = req.user.id;
       const { userId } = req.params;
-      const { limit = 10 } = req.query;
+      const { limit = 10, includeReactions = true } = req.query;
       
       const currentUser = await User.findById(currentUserId);
       const targetUser = await User.findById(userId);
@@ -1358,31 +1477,69 @@ class FriendController {
         });
       }
 
-      // Get friend's moods that they allow friends to see
+      // Get moods with enhanced data
       const moods = await Mood.find({
         userId: userId,
         privacy: { $in: ['friends', 'public'] }
       })
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .select('-reactions -comments');
+      .populate('userId', 'username selectedAvatar profile.displayName');
 
-      res.json({
-        success: true,
-        message: 'Friend moods retrieved',
-        data: {
-          moods: moods.map(mood => ({
+      // Get reactions for each mood if requested
+      const moodsWithReactions = await Promise.all(
+        moods.map(async (mood) => {
+          let reactions = [];
+          if (includeReactions === 'true') {
+            reactions = await ComfortReaction.find({
+              emotionEntry: mood._id
+            }).populate('fromUser', 'username selectedAvatar profile.displayName');
+          }
+
+          return {
             id: mood._id,
             emotion: mood.emotion,
             intensity: mood.intensity,
             note: mood.note,
             timestamp: mood.createdAt,
-            privacy: mood.privacy
-          })),
+            privacy: mood.privacy,
+            location: mood.location,
+            context: mood.context,
+            triggers: mood.triggers,
+            coping_strategies: mood.coping_strategies,
+            reactions: reactions.map(r => ({
+              id: r._id,
+              type: r.reactionType,
+              message: r.message,
+              fromUser: {
+                id: r.fromUser._id,
+                username: r.fromUser.username,
+                avatar: r.fromUser.selectedAvatar,
+                displayName: r.fromUser.profile?.displayName || r.fromUser.username
+              },
+              timestamp: r.createdAt,
+              isAnonymous: r.isAnonymous || false
+            })),
+            friend: {
+              id: targetUser._id,
+              username: targetUser.username,
+              avatar: targetUser.selectedAvatar,
+              displayName: targetUser.profile?.displayName || targetUser.username
+            }
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        message: 'Friend moods retrieved',
+        data: {
+          moods: moodsWithReactions,
           friend: {
             id: targetUser._id,
             username: targetUser.username,
-            avatar: targetUser.selectedAvatar
+            avatar: targetUser.selectedAvatar,
+            displayName: targetUser.profile?.displayName || targetUser.username
           }
         }
       });
@@ -1392,6 +1549,331 @@ class FriendController {
       res.status(500).json({
         success: false,
         message: 'Failed to get friend moods'
+      });
+    }
+  }
+
+  // Enhanced friend mood activity feed
+  async getFriendMoodActivityFeed(req, res) {
+    try {
+      const currentUserId = req.user.id;
+      const { page = 1, limit = 20 } = req.query;
+      
+      const currentUser = await User.findById(currentUserId);
+      if (!currentUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Get all friend IDs
+      const friendIds = currentUser.friends
+        .filter(f => f.status === 'accepted')
+        .map(f => f.userId);
+
+      if (friendIds.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No friends to show activity from',
+          data: {
+            activities: [],
+            total: 0,
+            page: parseInt(page),
+            totalPages: 0
+          }
+        });
+      }
+
+      // Get recent moods from friends
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const moods = await Mood.find({
+        userId: { $in: friendIds },
+        privacy: { $in: ['friends', 'public'] }
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('userId', 'username selectedAvatar profile.displayName');
+
+      // Get reactions for each mood
+      const activities = await Promise.all(
+        moods.map(async (mood) => {
+          const reactions = await ComfortReaction.find({
+            emotionEntry: mood._id
+          }).populate('fromUser', 'username selectedAvatar profile.displayName');
+
+          return {
+            type: 'mood',
+            id: mood._id,
+            friend: {
+              id: mood.userId._id,
+              username: mood.userId.username,
+              avatar: mood.userId.selectedAvatar,
+              displayName: mood.userId.profile?.displayName || mood.userId.username
+            },
+            emotion: mood.emotion,
+            intensity: mood.intensity,
+            note: mood.note,
+            timestamp: mood.createdAt,
+            location: mood.location,
+            context: mood.context,
+            reactions: reactions.map(r => ({
+              id: r._id,
+              type: r.reactionType,
+              message: r.message,
+              fromUser: {
+                id: r.fromUser._id,
+                username: r.fromUser.username,
+                avatar: r.fromUser.selectedAvatar,
+                displayName: r.fromUser.profile?.displayName || r.fromUser.username
+              },
+              timestamp: r.createdAt,
+              isAnonymous: r.isAnonymous || false
+            }))
+          };
+        })
+      );
+
+      // Get total count for pagination
+      const total = await Mood.countDocuments({
+        userId: { $in: friendIds },
+        privacy: { $in: ['friends', 'public'] }
+      });
+
+      res.json({
+        success: true,
+        message: 'Friend mood activity feed retrieved',
+        data: {
+          activities,
+          total,
+          page: parseInt(page),
+          totalPages: Math.ceil(total / parseInt(limit))
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting friend mood activity feed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get friend mood activity feed'
+      });
+    }
+  }
+
+  // Send mood reaction (hug, music, message, anonymous support)
+  async sendMoodReaction(req, res) {
+    try {
+      const currentUserId = req.user.id;
+      const { moodId } = req.params;
+      const { reactionType, message, isAnonymous = false } = req.body;
+
+      // Validate reaction type
+      const validReactionTypes = ['hug', 'music', 'message', 'anonymous_support'];
+      if (!validReactionTypes.includes(reactionType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reaction type'
+        });
+      }
+
+      // Check if mood exists and is from a friend
+      const mood = await Mood.findById(moodId).populate('userId');
+      if (!mood) {
+        return res.status(404).json({
+          success: false,
+          message: 'Mood not found'
+        });
+      }
+
+      // Check if current user is friends with mood owner
+      const currentUser = await User.findById(currentUserId);
+      const isFriend = currentUser.friends.some(
+        f => f.userId.toString() === mood.userId._id.toString() && f.status === 'accepted'
+      );
+
+      if (!isFriend) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only react to moods of your friends'
+        });
+      }
+
+      // Check if user already reacted to this mood
+      const existingReaction = await ComfortReaction.findOne({
+        fromUser: currentUserId,
+        emotionEntry: moodId,
+        reactionType
+      });
+
+      if (existingReaction) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already sent this reaction'
+        });
+      }
+
+      // Create the reaction
+      const reaction = new ComfortReaction({
+        fromUser: currentUserId,
+        toUser: mood.userId._id,
+        emotionEntry: moodId,
+        reactionType,
+        message: isAnonymous ? null : message,
+        isAnonymous
+      });
+
+      await reaction.save();
+      await reaction.populate('fromUser', 'username selectedAvatar profile.displayName');
+
+      // Emit socket event for real-time updates
+      if (req.io) {
+        req.io.to(`user:${mood.userId._id}`).emit('mood_reaction_received', {
+          reaction: {
+            id: reaction._id,
+            type: reaction.reactionType,
+            message: reaction.message,
+            fromUser: isAnonymous ? null : {
+              id: reaction.fromUser._id,
+              username: reaction.fromUser.username,
+              avatar: reaction.fromUser.selectedAvatar,
+              displayName: reaction.fromUser.profile?.displayName || reaction.fromUser.username
+            },
+            timestamp: reaction.createdAt,
+            isAnonymous
+          },
+          moodId: moodId
+        });
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Mood reaction sent successfully',
+        data: {
+          reaction: {
+            id: reaction._id,
+            type: reaction.reactionType,
+            message: reaction.message,
+            fromUser: isAnonymous ? null : {
+              id: reaction.fromUser._id,
+              username: reaction.fromUser.username,
+              avatar: reaction.fromUser.selectedAvatar,
+              displayName: reaction.fromUser.profile?.displayName || reaction.fromUser.username
+            },
+            timestamp: reaction.createdAt,
+            isAnonymous
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error sending mood reaction:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send mood reaction'
+      });
+    }
+  }
+
+  // Get friend mood insights and patterns
+  async getFriendMoodInsights(req, res) {
+    try {
+      const currentUserId = req.user.id;
+      const { friendId } = req.params;
+      const { days = 30 } = req.query;
+
+      const currentUser = await User.findById(currentUserId);
+      const friend = await User.findById(friendId);
+
+      if (!currentUser || !friend) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Check if they are friends
+      const isFriend = currentUser.friends.some(
+        f => f.userId.toString() === friendId && f.status === 'accepted'
+      );
+
+      if (!isFriend) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only view insights of your friends'
+        });
+      }
+
+      // Get friend's moods for the specified period
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days));
+
+      const moods = await Mood.find({
+        userId: friendId,
+        privacy: { $in: ['friends', 'public'] },
+        createdAt: { $gte: startDate }
+      }).sort({ createdAt: -1 });
+
+      // Calculate insights
+      const insights = {
+        totalMoods: moods.length,
+        averageIntensity: moods.length > 0 
+          ? moods.reduce((sum, mood) => sum + mood.intensity, 0) / moods.length 
+          : 0,
+        emotionBreakdown: {},
+        commonTriggers: {},
+        commonCopingStrategies: {},
+        moodTrend: 'stable', // TODO: Implement trend calculation
+        recommendations: []
+      };
+
+      // Analyze emotions
+      moods.forEach(mood => {
+        insights.emotionBreakdown[mood.emotion] = (insights.emotionBreakdown[mood.emotion] || 0) + 1;
+      });
+
+      // Analyze triggers and coping strategies
+      moods.forEach(mood => {
+        mood.triggers?.forEach(trigger => {
+          insights.commonTriggers[trigger] = (insights.commonTriggers[trigger] || 0) + 1;
+        });
+        mood.coping_strategies?.forEach(strategy => {
+          insights.commonCopingStrategies[strategy] = (insights.commonCopingStrategies[strategy] || 0) + 1;
+        });
+      });
+
+      // Generate recommendations based on patterns
+      const topEmotion = Object.entries(insights.emotionBreakdown)
+        .sort(([,a], [,b]) => b - a)[0];
+
+      if (topEmotion && topEmotion[0] === 'sad' && topEmotion[1] > moods.length * 0.3) {
+        insights.recommendations.push({
+          type: 'check_in',
+          message: 'Your friend has been feeling down lately. Consider reaching out with support.',
+          priority: 'high'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Friend mood insights retrieved',
+        data: {
+          friend: {
+            id: friend._id,
+            username: friend.username,
+            avatar: friend.selectedAvatar,
+            displayName: friend.profile?.displayName || friend.username
+          },
+          insights,
+          period: `${days} days`
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting friend mood insights:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get friend mood insights'
       });
     }
   }

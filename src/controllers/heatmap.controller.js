@@ -10,7 +10,7 @@ try {
   const heatmapModule = await import('../services/heatmap.service.js');
   heatmapService = heatmapModule.default;
 } catch (error) {
-  logger.warn('⚠️ Heatmap service not available');
+  logger.warn('. Heatmap service not available');
 }
 
 try {
@@ -40,7 +40,7 @@ class HeatmapController {
         heatmapData
       ));
     } catch (error) {
-      logger.error('❌ Error getting global heatmap:', error);
+      logger.error('. Error getting global heatmap:', error);
       res.status(500).json(createErrorResponse(
         'Failed to retrieve global heatmap',
         { error: error.message }
@@ -66,7 +66,7 @@ class HeatmapController {
         stats
       ));
     } catch (error) {
-      logger.error('❌ Error getting heatmap stats:', error);
+      logger.error('. Error getting heatmap stats:', error);
       res.status(500).json(createErrorResponse(
         'Failed to retrieve heatmap statistics',
         { error: error.message }
@@ -119,7 +119,7 @@ class HeatmapController {
         regionalData
       ));
     } catch (error) {
-      logger.error('❌ Error getting regional heatmap:', error);
+      logger.error('. Error getting regional heatmap:', error);
       res.status(500).json(createErrorResponse(
         'Failed to retrieve regional heatmap',
         { error: error.message }
@@ -158,7 +158,7 @@ class HeatmapController {
         filters
       ));
     } catch (error) {
-      logger.error('❌ Error getting heatmap filters:', error);
+      logger.error('. Error getting heatmap filters:', error);
       res.status(500).json(createErrorResponse(
         'Failed to retrieve heatmap filters',
         { error: error.message }
@@ -211,7 +211,7 @@ class HeatmapController {
         summary
       ));
     } catch (error) {
-      logger.error('❌ Error getting heatmap summary:', error);
+      logger.error('. Error getting heatmap summary:', error);
       res.status(500).json(createErrorResponse(
         'Failed to retrieve heatmap summary',
         { error: error.message }

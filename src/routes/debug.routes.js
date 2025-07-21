@@ -19,22 +19,22 @@ router.post('/debug-jwt', async (req, res) => {
       });
     }
 
-    console.log('🔍 DEBUG JWT - Received token:', token.substring(0, 20) + '...');
+    console.log('. DEBUG JWT - Received token:', token.substring(0, 20) + '...');
     console.log('🔑 DEBUG JWT - Using secret:', config.JWT_SECRET.substring(0, 10) + '...');
 
     try {
       // Attempt to decode without verification first
       const decoded = jwt.decode(token, { complete: true });
-      console.log('📋 DEBUG JWT - Decoded header:', decoded?.header);
-      console.log('📋 DEBUG JWT - Decoded payload:', decoded?.payload);
+      console.log('. DEBUG JWT - Decoded header:', decoded?.header);
+      console.log('. DEBUG JWT - Decoded payload:', decoded?.payload);
 
       // Now attempt verification
       const verified = jwt.verify(token, config.JWT_SECRET);
-      console.log('✅ DEBUG JWT - Verification successful:', verified);
+      console.log('. DEBUG JWT - Verification successful:', verified);
 
       // Check if user exists
       const user = await User.findById(verified.userId);
-      console.log('👤 DEBUG JWT - User found:', user ? user.username : 'NOT FOUND');
+      console.log('. DEBUG JWT - User found:', user ? user.username : 'NOT FOUND');
 
       return res.json({
         status: 'success',
@@ -49,7 +49,7 @@ router.post('/debug-jwt', async (req, res) => {
       });
 
     } catch (jwtError) {
-      console.log('❌ DEBUG JWT - Verification failed:', jwtError.message);
+      console.log('. DEBUG JWT - Verification failed:', jwtError.message);
       
       return res.status(401).json({
         status: 'error',
@@ -118,7 +118,7 @@ router.post('/generate-test-token', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    console.log('🔧 Generated test token for:', username);
+    console.log('. Generated test token for:', username);
 
     res.json({
       status: 'success',

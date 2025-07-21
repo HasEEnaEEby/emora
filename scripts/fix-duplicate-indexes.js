@@ -9,14 +9,14 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/emora-
 
 async function fixDuplicateIndexes() {
   try {
-    console.log('🔧 Connecting to MongoDB...');
+    console.log('. Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log('. Connected to MongoDB');
 
     const db = mongoose.connection.db;
 
     // Fix User collection indexes
-    console.log('\n📋 Fixing User collection indexes...');
+    console.log('\n. Fixing User collection indexes...');
     const userCollection = db.collection('users');
     
     // Get existing indexes
@@ -41,18 +41,18 @@ async function fixDuplicateIndexes() {
       for (const indexName of indexesToDrop) {
         try {
           await userCollection.dropIndex(indexName);
-          console.log(`✅ Dropped duplicate index: ${indexName}`);
+          console.log(`. Dropped duplicate index: ${indexName}`);
         } catch (error) {
-          console.log(`⚠️ Could not drop index ${indexName}:`, error.message);
+          console.log(`. Could not drop index ${indexName}:`, error.message);
         }
       }
 
     } catch (error) {
-      console.log('⚠️ Error dropping user indexes:', error.message);
+      console.log('. Error dropping user indexes:', error.message);
     }
 
     // Fix Emotion collection indexes
-    console.log('\n📊 Fixing Emotion/UnifiedEmotion collection indexes...');
+    console.log('\n. Fixing Emotion/UnifiedEmotion collection indexes...');
     const emotionCollections = ['emotions', 'unifiedemotions'];
     
     for (const collectionName of emotionCollections) {
@@ -84,14 +84,14 @@ async function fixDuplicateIndexes() {
         for (const indexName of timestampIndexesToDrop) {
           try {
             await collection.dropIndex(indexName);
-            console.log(`✅ Dropped duplicate timestamp index: ${indexName}`);
+            console.log(`. Dropped duplicate timestamp index: ${indexName}`);
           } catch (error) {
-            console.log(`⚠️ Could not drop index ${indexName}:`, error.message);
+            console.log(`. Could not drop index ${indexName}:`, error.message);
           }
         }
 
       } catch (error) {
-        console.log(`⚠️ Error fixing ${collectionName} indexes:`, error.message);
+        console.log(`. Error fixing ${collectionName} indexes:`, error.message);
       }
     }
 
@@ -101,34 +101,34 @@ async function fixDuplicateIndexes() {
     // User indexes
     try {
       await userCollection.createIndex({ username: 1 }, { unique: true, background: true });
-      console.log('✅ Created unique username index');
+      console.log('. Created unique username index');
     } catch (error) {
       console.log('ℹ️ Username index already exists:', error.message);
     }
 
     try {
       await userCollection.createIndex({ email: 1 }, { unique: true, background: true });
-      console.log('✅ Created unique email index');
+      console.log('. Created unique email index');
     } catch (error) {
       console.log('ℹ️ Email index already exists:', error.message);
     }
 
     try {
       await userCollection.createIndex({ isActive: 1 }, { background: true });
-      console.log('✅ Created isActive index');
+      console.log('. Created isActive index');
     } catch (error) {
       console.log('ℹ️ isActive index already exists:', error.message);
     }
 
     // Check final state
-    console.log('\n📊 Final index state:');
+    console.log('\n. Final index state:');
     const finalUserIndexes = await userCollection.indexes();
     console.log('User collection indexes:');
     finalUserIndexes.forEach(index => {
       console.log(`  - ${index.name}: ${JSON.stringify(index.key)} ${index.unique ? '(unique)' : ''}`);
     });
 
-    console.log('\n✅ Index optimization complete!');
+    console.log('\n. Index optimization complete!');
     console.log('\n🎯 Summary:');
     console.log('• Removed duplicate manual indexes');
     console.log('• Kept unique constraints for username and email');
@@ -136,7 +136,7 @@ async function fixDuplicateIndexes() {
     console.log('• Your app should now load properly');
 
   } catch (error) {
-    console.error('❌ Error fixing indexes:', error);
+    console.error('. Error fixing indexes:', error);
   } finally {
     await mongoose.disconnect();
     console.log('\n📡 Disconnected from MongoDB');

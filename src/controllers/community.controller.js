@@ -2,9 +2,101 @@
 import User from '../models/user.model.js';
 import Mood from '../models/mood.model.js';
 import CommunityPost from '../models/community-post.model.js';
-import logger from '../utils/logger.js';
+import Logger from '../utils/logger.js';
 
 class CommunityController {
+  
+  // POST /api/community - Create a new community post
+  async createCommunityPost(req, res) {
+    try {
+      Logger.info(`🔄 Creating community post for user: ${req.user.userId}`);
+      
+      const {
+        emotionId,
+        type,
+        intensity,
+        note,
+        tags = [],
+        location,
+        isPublic = true
+      } = req.body;
+
+      // Validate required fields
+      if (!emotionId || !type) {
+        Logger.warning('❌ Missing required fields for community post');
+        return res.status(400).json({
+          status: 'error',
+          message: 'Missing required fields',
+          errorCode: 'MISSING_REQUIRED_FIELDS'
+        });
+      }
+
+      // Get user info for the post
+      const user = await User.findById(req.user.userId).select('username displayName selectedAvatar');
+      if (!user) {
+        Logger.warning(`⚠️ User not found: ${req.user.userId}`);
+        return res.status(404).json({
+          status: 'error',
+          message: 'User not found',
+          errorCode: 'USER_NOT_FOUND'
+        });
+      }
+
+      // Create community post
+      const postData = {
+        userId: req.user.userId,
+        content: note?.trim() || `Feeling ${type} today`,
+        emoji: CommunityController.getEmojiForEmotion(type),
+        activityType: 'General',
+        location: location ? {
+          city: location.name?.split(',')[0]?.trim() || 'Unknown',
+          country: location.name?.split(',').pop()?.trim() || 'Unknown',
+          coordinates: [location.longitude, location.latitude]
+        } : null,
+        privacy: isPublic ? 'public' : 'friends'
+      };
+
+      Logger.info(`📝 Creating community post: ${postData.type} with intensity ${postData.intensity}`);
+
+      const communityPost = new CommunityPost(postData);
+      await communityPost.save();
+
+      Logger.info(`✅ Community post saved with ID: ${communityPost._id}`);
+
+      // Prepare response with user info
+      const response = {
+        status: 'success',
+        message: 'Community post created successfully',
+        data: {
+          post: {
+            id: communityPost._id,
+            userId: communityPost.userId,
+            content: communityPost.content,
+            emoji: communityPost.emoji,
+            activityType: communityPost.activityType,
+            hasLocation: !!communityPost.location,
+            createdAt: communityPost.createdAt,
+            user: {
+              username: user.username,
+              displayName: user.displayName || user.username,
+              selectedAvatar: user.selectedAvatar
+            }
+          }
+        }
+      };
+
+      Logger.info(`✅ Community post created successfully for user: ${req.user.userId}`);
+      res.status(201).json(response);
+
+    } catch (error) {
+      Logger.error(`❌ Error creating community post: ${error.message}`);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to create community post',
+        errorCode: 'COMMUNITY_POST_CREATE_FAILED'
+      });
+    }
+  }
   
   // Get global community feed
   async getGlobalFeed(req, res) {
@@ -83,7 +175,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error getting global feed:', error);
+      Logger.error('Error getting global feed:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get global feed',
@@ -166,7 +258,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error getting friends feed:', error);
+      Logger.error('Error getting friends feed:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get friends feed',
@@ -241,7 +333,7 @@ class CommunityController {
       
       await mood.save();
       
-      logger.info(`User ${currentUserId} reacted to post ${postId} with ${emoji}`);
+      Logger.info(`User ${currentUserId} reacted to post ${postId} with ${emoji}`);
       
       // TODO: Send push notification to post owner
       
@@ -259,7 +351,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error reacting to post:', error);
+      Logger.error('Error reacting to post:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to react to post',
@@ -313,7 +405,7 @@ class CommunityController {
         });
       }
     } catch (error) {
-      logger.error('Error removing reaction:', error);
+      Logger.error('Error removing reaction:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to remove reaction',
@@ -382,7 +474,7 @@ class CommunityController {
         $inc: { 'analytics.totalCommentsReceived': 1 }
       });
       
-      logger.info(`User ${currentUserId} commented on post ${postId}`);
+      Logger.info(`User ${currentUserId} commented on post ${postId}`);
       
       // TODO: Send push notification to post owner
       
@@ -401,7 +493,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error adding comment:', error);
+      Logger.error('Error adding comment:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to add comment',
@@ -474,7 +566,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error getting comments:', error);
+      Logger.error('Error getting comments:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get comments',
@@ -568,7 +660,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error getting global stats:', error);
+      Logger.error('Error getting global stats:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get global statistics',
@@ -658,7 +750,7 @@ class CommunityController {
         }
       });
     } catch (error) {
-      logger.error('Error getting trending posts:', error);
+      Logger.error('Error getting trending posts:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to get trending posts',

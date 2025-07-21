@@ -558,7 +558,7 @@ class AnalyticsController {
           'Peak emotional activity occurs in the evening'
         ]
       };
-
+      
       successResponse(res, {
         message: 'Report generated successfully',
         data: report

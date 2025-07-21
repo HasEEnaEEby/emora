@@ -9,7 +9,7 @@ import cacheService from '../utils/cache.js';
 
 class LocationService {
   
-  // ✅ ENHANCED: Your existing method with consent support
+  // . ENHANCED: Your existing method with consent support
   async getLocationFromRequest(req, consentLevel = 'city_only') {
     try {
       // Get IP address
@@ -29,7 +29,7 @@ class LocationService {
     }
   }
 
-  // ✅ Your existing method (unchanged)
+  // . Your existing method (unchanged)
   getClientIP(req) {
     return req.headers['x-forwarded-for'] || 
            req.headers['x-real-ip'] || 
@@ -40,7 +40,7 @@ class LocationService {
            '127.0.0.1';
   }
 
-  // ✅ ENHANCED: Your existing method with consent levels
+  // . ENHANCED: Your existing method with consent levels
   async getLocationFromIP(ip, consentLevel = 'city_only') {
     try {
       // Handle localhost/development
@@ -55,7 +55,7 @@ class LocationService {
         return this.getDefaultLocation();
       }
 
-      // ✅ NEW: Create location object based on consent level
+      // . NEW: Create location object based on consent level
       return this.createLocationWithConsent({
         coordinates: [geo.ll[1], geo.ll[0]], // [longitude, latitude]
         city: geo.city || 'Unknown',
@@ -71,7 +71,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Create location object respecting consent level
+  // . NEW: Create location object respecting consent level
   createLocationWithConsent(addressData, consentLevel = 'city_only', source = 'gps') {
     const baseLocation = {
       hasUserConsent: consentLevel !== 'none',
@@ -140,7 +140,7 @@ class LocationService {
     }
   }
 
-  // ✅ ENHANCED: Your existing method with better reverse geocoding
+  // . ENHANCED: Your existing method with better reverse geocoding
   async getLocationFromCoordinates(lat, lon, consentLevel = 'city_only') {
     try {
       // Try reverse geocoding with multiple providers
@@ -165,7 +165,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Enhanced reverse geocoding
+  // . NEW: Enhanced reverse geocoding
   async reverseGeocode(latitude, longitude) {
     const cacheKey = `geocode:${latitude.toFixed(4)},${longitude.toFixed(4)}`;
     
@@ -227,7 +227,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Estimate continent from coordinates
+  // . NEW: Estimate continent from coordinates
   estimateContinent(latitude, longitude) {
     if (latitude > 35 && longitude > -10 && longitude < 70) {
       return 'Europe';
@@ -245,13 +245,13 @@ class LocationService {
     return 'Unknown';
   }
 
-  // ✅ NEW: Simple timezone estimation
+  // . NEW: Simple timezone estimation
   getTimezoneFromCoordinates(latitude, longitude) {
     const timezoneOffset = Math.round(longitude / 15);
     return timezoneOffset >= 0 ? `UTC+${timezoneOffset}` : `UTC${timezoneOffset}`;
   }
 
-  // ✅ ENHANCED: Your existing method (unchanged)
+  // . ENHANCED: Your existing method (unchanged)
   getDefaultLocation() {
     return {
       hasUserConsent: false,
@@ -266,7 +266,7 @@ class LocationService {
     };
   }
 
-  // ✅ Your existing method (unchanged)
+  // . Your existing method (unchanged)
   getContinent(countryCode) {
     const continents = {
       'AD': 'Europe', 'AE': 'Asia', 'AF': 'Asia', 'AG': 'North America',
@@ -336,7 +336,7 @@ class LocationService {
     return continents[countryCode] || 'Unknown';
   }
 
-  // ✅ Your existing method (unchanged)
+  // . Your existing method (unchanged)
   validateLocation(location) {
     if (!location || !location.coordinates) return false;
     
@@ -350,7 +350,7 @@ class LocationService {
     );
   }
 
-  // ✅ NEW: Location consent management
+  // . NEW: Location consent management
   async updateLocationConsent(userId, consentLevel, coordinates = null) {
     try {
       const user = await User.findById(userId);
@@ -390,7 +390,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Get location-based insights
+  // . NEW: Get location-based insights
   async getLocationBasedInsights(userId, coordinates, radiusKm = 50) {
     const cacheKey = `location_insights:${userId}:${coordinates?.join(',') || 'none'}:${radiusKm}`;
     
@@ -475,7 +475,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Generate insights from location data
+  // . NEW: Generate insights from location data
   generateLocationInsights(moodStats, supportStats) {
     const insights = [];
 
@@ -518,7 +518,7 @@ class LocationService {
     return insights;
   }
 
-  // ✅ NEW: General insights for users without location
+  // . NEW: General insights for users without location
   async getGeneralInsights(userId) {
     try {
       const userMoodStats = await Mood.aggregate([
@@ -544,7 +544,7 @@ class LocationService {
           type: 'personal_pattern',
           message: userMoodStats.length > 0 
             ? `Your most frequent emotion this month has been ${userMoodStats[0]._id}`
-            : 'Start logging your moods to see personal patterns and insights'
+            : 'Start logging your and insights'
         }]
       };
 
@@ -554,7 +554,7 @@ class LocationService {
     }
   }
 
-  // ✅ NEW: Get shared location data based on privacy settings
+  // . NEW: Get shared location data based on privacy settings
   getSharedLocationData(locationObj, shareLevel = 'city_only') {
     if (!locationObj || !locationObj.hasUserConsent) {
       return null;

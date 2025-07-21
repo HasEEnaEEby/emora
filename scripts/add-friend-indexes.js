@@ -10,13 +10,13 @@ async function addFriendIndexes() {
   try {
     console.log('🔗 Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    console.log('. Connected to MongoDB');
 
     const db = mongoose.connection.db;
 
-    console.log('📊 Adding friend system indexes...');
+    console.log('. Adding friend system indexes...');
 
-    // ✅ CRITICAL: Add indexes for friend operations
+    // . CRITICAL: Add indexes for friend operations
     const indexes = [
       // User lookup indexes
       { collection: 'users', index: { '_id': 1 } },
@@ -49,12 +49,12 @@ async function addFriendIndexes() {
       try {
         console.log(`📈 Adding index to ${collection}:`, index);
         await db.collection(collection).createIndex(index);
-        console.log(`✅ Index added successfully to ${collection}`);
+        console.log(`. Index added successfully to ${collection}`);
       } catch (error) {
         if (error.code === 85) {
           console.log(`ℹ️ Index already exists for ${collection}:`, index);
         } else {
-          console.error(`❌ Error adding index to ${collection}:`, error.message);
+          console.error(`. Error adding index to ${collection}:`, error.message);
         }
       }
     }
@@ -62,7 +62,7 @@ async function addFriendIndexes() {
     console.log('🎉 All friend system indexes added successfully!');
     
     // Show index statistics
-    console.log('\n📊 Index Statistics:');
+    console.log('\n. Index Statistics:');
     const collections = ['users'];
     
     for (const collectionName of collections) {
@@ -74,7 +74,7 @@ async function addFriendIndexes() {
     }
 
   } catch (error) {
-    console.error('❌ Error adding indexes:', error);
+    console.error('. Error adding indexes:', error);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
@@ -84,9 +84,9 @@ async function addFriendIndexes() {
 
 // Run the script
 addFriendIndexes().then(() => {
-  console.log('✅ Index setup completed');
+  console.log('. Index setup completed');
   process.exit(0);
 }).catch((error) => {
-  console.error('❌ Index setup failed:', error);
+  console.error('. Index setup failed:', error);
   process.exit(1);
 }); 

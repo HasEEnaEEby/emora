@@ -164,16 +164,16 @@ const setupSocketHandlers = (io) => {
 
     // Error handling
     socket.on('error', (error) => {
-      logger.error(`❌ Socket error for ${socket.user.username}:`, error);
+      logger.error(`. Socket error for ${socket.user.username}:`, error);
     });
   });
 
   // Global connection handling
   io.on('connect_error', (error) => {
-    logger.error('❌ Socket.IO connection error:', error);
+    logger.error('. Socket.IO connection error:', error);
   });
 
-  logger.info('✅ Socket.io handlers initialized with social features');
+  logger.info('. Socket.io handlers initialized with social features');
 };
 
 export default setupSocketHandlers;

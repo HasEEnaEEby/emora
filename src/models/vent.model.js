@@ -19,11 +19,11 @@ const VentSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
-    maxlength: 2000, // ✅ INCREASED: More space for detailed vents
+    maxlength: 2000, // . INCREASED: More space for detailed vents
     trim: true
   },
   
-  // ✅ ENHANCED: Multiple emotions (people feel complex emotions)
+  // . ENHANCED: Multiple emotions (people feel complex emotions)
   emotions: [{
     type: String,
     enum: [
@@ -39,7 +39,7 @@ const VentSchema = new mongoose.Schema({
     ]
   }],
   
-  // ✅ NEW: Primary issue category (beyond emotions)
+  // . NEW: Primary issue category (beyond emotions)
   issueCategory: {
     type: String,
     enum: [
@@ -60,7 +60,7 @@ const VentSchema = new mongoose.Schema({
     required: true
   },
   
-  // ✅ NEW: Urgency and severity indicators
+  // . NEW: Urgency and severity indicators
   urgency: {
     level: {
       type: String,
@@ -81,7 +81,7 @@ const VentSchema = new mongoose.Schema({
     }
   },
   
-  // ✅ NEW: What they're seeking
+  // . NEW: What they're seeking
   seekingType: [{
     type: String,
     enum: [
@@ -91,7 +91,7 @@ const VentSchema = new mongoose.Schema({
     ]
   }],
   
-  // ✅ ENHANCED: Better triggers and context
+  // . ENHANCED: Better triggers and context
   triggers: [{
     type: String,
     enum: [
@@ -110,7 +110,7 @@ const VentSchema = new mongoose.Schema({
     ]
   }],
   
-  // ✅ NEW: Duration and pattern
+  // . NEW: Duration and pattern
   duration: {
     type: String,
     enum: ['right_now', 'today', 'this_week', 'this_month', 'months', 'years', 'always'],
@@ -126,11 +126,11 @@ const VentSchema = new mongoose.Schema({
   intensity: {
     type: Number,
     min: 1,
-    max: 10, // ✅ CHANGED: 1-10 scale is more intuitive
+    max: 10, // . CHANGED: 1-10 scale is more intuitive
     default: 5
   },
   
-  // ✅ ENHANCED: More specific tags
+  // . ENHANCED: More specific tags
   tags: [{
     type: String,
     trim: true,
@@ -148,7 +148,7 @@ const VentSchema = new mongoose.Schema({
     ]
   }],
   
-  // ✅ ENHANCED: Location with better privacy
+  // . ENHANCED: Location with better privacy
   location: {
     // Consent and privacy
     hasUserConsent: {
@@ -189,7 +189,7 @@ const VentSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     },
-    allowMatching: { // ✅ NEW: Allow matching with similar vents/people
+    allowMatching: { // . NEW: Allow matching with similar vents/people
       type: Boolean,
       default: true
     },
@@ -209,7 +209,7 @@ const VentSchema = new mongoose.Schema({
     }
   },
   
-  // ✅ ENHANCED: More reaction types
+  // . ENHANCED: More reaction types
   reactions: [{
     type: {
       type: String,
@@ -226,7 +226,7 @@ const VentSchema = new mongoose.Schema({
       required: true
     },
     anonymousId: String,
-    message: { // ✅ NEW: Optional supportive message
+    message: { // . NEW: Optional supportive message
       type: String,
       maxlength: 200,
       trim: true
@@ -237,16 +237,16 @@ const VentSchema = new mongoose.Schema({
     }
   }],
   
-  // ✅ ENHANCED: Better replies system
+  // . ENHANCED: Better replies system
   replies: [{
     content: {
       type: String,
       required: true,
-      maxlength: 1000, // ✅ INCREASED: More space for helpful replies
+      maxlength: 1000, // . INCREASED: More space for helpful replies
       trim: true
     },
     anonymousId: String,
-    replyType: { // ✅ NEW: Type of reply
+    replyType: { // . NEW: Type of reply
       type: String,
       enum: [
         'support', 'advice', 'shared_experience', 'resources', 
@@ -258,7 +258,7 @@ const VentSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    isHelpful: { // ✅ NEW: Track helpful replies
+    isHelpful: { // . NEW: Track helpful replies
       type: Number,
       default: 0
     },
@@ -275,7 +275,7 @@ const VentSchema = new mongoose.Schema({
     }]
   }],
   
-  // ✅ NEW: Matching and support system
+  // . NEW: Matching and support system
   matching: {
     allowPeerMatching: {
       type: Boolean,
@@ -298,7 +298,7 @@ const VentSchema = new mongoose.Schema({
     }]
   },
   
-  // ✅ ENHANCED: Moderation with better safety
+  // . ENHANCED: Moderation with better safety
   moderation: {
     isFlagged: {
       type: Boolean,
@@ -318,7 +318,7 @@ const VentSchema = new mongoose.Schema({
     },
     moderatedAt: Date,
     
-    // ✅ NEW: AI safety screening
+    // . NEW: AI safety screening
     aiScreening: {
       riskLevel: {
         type: String,
@@ -340,7 +340,7 @@ const VentSchema = new mongoose.Schema({
     }
   },
   
-  // ✅ ENHANCED: Analytics for better support
+  // . ENHANCED: Analytics for better support
   analytics: {
     viewCount: {
       type: Number,
@@ -363,7 +363,7 @@ const VentSchema = new mongoose.Schema({
       default: 0
     },
     
-    // ✅ NEW: Support tracking
+    // . NEW: Support tracking
     supportProvided: {
       type: Boolean,
       default: false
@@ -385,7 +385,7 @@ const VentSchema = new mongoose.Schema({
     }
   },
   
-  // ✅ NEW: Follow-up and resolution tracking
+  // . NEW: Follow-up and resolution tracking
   followUp: {
     hasFollowUp: {
       type: Boolean,
@@ -436,7 +436,7 @@ const VentSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// ✅ ENHANCED: Better indexes for matching and analytics
+// . ENHANCED: Better indexes for matching and analytics
 VentSchema.index({ createdAt: -1 });
 VentSchema.index({ 'privacy.isPublic': 1, createdAt: -1 });
 VentSchema.index({ issueCategory: 1, createdAt: -1 });
@@ -448,7 +448,7 @@ VentSchema.index({ 'moderation.aiScreening.riskLevel': 1 });
 VentSchema.index({ seekingType: 1 });
 VentSchema.index({ emotions: 1, issueCategory: 1 });
 
-// ✅ NEW: Find similar vents for matching
+// . NEW: Find similar vents for matching
 VentSchema.statics.findSimilarVents = function(ventId, limit = 5) {
   return this.aggregate([
     { $match: { _id: { $ne: ventId }, 'privacy.isPublic': true, 'moderation.isHidden': false } },
@@ -498,7 +498,7 @@ VentSchema.statics.findSimilarVents = function(ventId, limit = 5) {
   ]);
 };
 
-// ✅ NEW: Crisis detection and intervention
+// . NEW: Crisis detection and intervention
 VentSchema.methods.assessCrisisRisk = function() {
   let riskScore = 0;
   const crisisKeywords = [
@@ -545,7 +545,7 @@ VentSchema.methods.assessCrisisRisk = function() {
   return { riskLevel, riskScore };
 };
 
-// ✅ NEW: Get location-based support resources
+// . NEW: Get location-based support resources
 VentSchema.statics.getNearbySupport = function(coordinates, issueCategory, radiusKm = 100) {
   if (!coordinates || coordinates.length !== 2) {
     return Promise.resolve([]);
@@ -581,7 +581,7 @@ VentSchema.statics.getNearbySupport = function(coordinates, issueCategory, radiu
   ]);
 };
 
-// ✅ ENHANCED: Better public vents with filtering
+// . ENHANCED: Better public vents with filtering
 VentSchema.statics.getPublicVents = function(page = 1, limit = 20, filters = {}) {
   const skip = (page - 1) * limit;
   
@@ -639,7 +639,7 @@ VentSchema.statics.getPublicVents = function(page = 1, limit = 20, filters = {})
     .select('-moderation.flaggedBy -sessionToken -moderation.aiScreening');
 };
 
-// ✅ NEW: Track successful support outcomes
+// . NEW: Track successful support outcomes
 VentSchema.methods.markSupportProvided = function(resourcesProvided = []) {
   this.analytics.supportProvided = true;
   if (resourcesProvided.length > 0) {
@@ -651,7 +651,7 @@ VentSchema.methods.markSupportProvided = function(resourcesProvided = []) {
   return this.save();
 };
 
-// ✅ NEW: Follow-up and outcome tracking
+// . NEW: Follow-up and outcome tracking
 VentSchema.methods.addFollowUp = function(improvement, helpfulness, additionalSupport = '') {
   this.followUp = {
     hasFollowUp: true,
@@ -669,7 +669,7 @@ VentSchema.methods.addFollowUp = function(improvement, helpfulness, additionalSu
   return this.save();
 };
 
-// ✅ ENHANCED: Better reaction system
+// . ENHANCED: Better reaction system
 VentSchema.methods.addReaction = function(reactionType, anonymousId, message = '') {
   // Check if user already reacted
   const existingReaction = this.reactions.find(r => r.anonymousId === anonymousId);
@@ -690,7 +690,7 @@ VentSchema.methods.addReaction = function(reactionType, anonymousId, message = '
   return this.save();
 };
 
-// ✅ NEW: Enhanced reply system
+// . NEW: Enhanced reply system
 VentSchema.methods.addReply = function(content, anonymousId, replyType = 'support') {
   this.replies.push({
     content,
@@ -703,7 +703,7 @@ VentSchema.methods.addReply = function(content, anonymousId, replyType = 'suppor
   return this.save();
 };
 
-// ✅ NEW: Match with potential supporters
+// . NEW: Match with potential supporters
 VentSchema.methods.findPotentialSupporters = function() {
   if (!this.matching.allowPeerMatching) return Promise.resolve([]);
   

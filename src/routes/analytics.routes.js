@@ -8,7 +8,7 @@ import { validatePagination, validateTimeframe } from '../validators/emotion.val
 const router = Router();
 
 // Debug logging
-console.log('🔍 Analytics Routes Debug:');
+console.log('. Analytics Routes Debug:');
 console.log('analyticsController:', typeof analyticsController);
 console.log('authMiddleware:', typeof authMiddleware);
 console.log('createRateLimit:', typeof createRateLimit);
@@ -202,6 +202,134 @@ router.get('/demographics',
       message: 'getDemographicAnalytics controller method not implemented'
     });
   })
+);
+
+/**
+ * @route   GET /api/analytics/dashboard
+ * @desc    Get dashboard analytics data
+ * @access  Public
+ * @query   {timeframe?, userId?}
+ */
+router.get('/dashboard',
+  validateTimeframe || ((req, res, next) => next()),
+  async (req, res) => {
+    try {
+      const { timeframe = '24h', userId } = req.query;
+      
+      // Calculate time range
+      const now = new Date();
+      let startDate;
+      
+      switch (timeframe) {
+        case '1h':
+          startDate = new Date(now.getTime() - 60 * 60 * 1000);
+          break;
+        case '24h':
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          break;
+        case '7d':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      }
+
+      // Import Emotion model
+      const Emotion = (await import('../models/emotion.model.js')).default;
+      
+      // Build query
+      const query = { 
+        privacy: 'public',
+        createdAt: { $gte: startDate }
+      };
+      
+      if (userId) {
+        query.userId = userId;
+      }
+
+      // Get dashboard data
+      const [totalEmotions, emotionBreakdown, topLocations, recentActivity] = await Promise.all([
+        // Total emotions
+        Emotion.countDocuments(query),
+        
+        // Emotion breakdown
+        Emotion.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: '$coreEmotion',
+              count: { $sum: 1 },
+              avgIntensity: { $avg: '$intensity' }
+            }
+          },
+          { $sort: { count: -1 } }
+        ]),
+        
+        // Top locations
+        Emotion.aggregate([
+          { $match: query },
+          {
+            $group: {
+              _id: {
+                city: '$location.city',
+                country: '$location.country'
+              },
+              count: { $sum: 1 },
+              avgIntensity: { $avg: '$intensity' }
+            }
+          },
+          { $sort: { count: -1 } },
+          { $limit: 10 }
+        ]),
+        
+        // Recent activity
+        Emotion.find(query)
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .select('coreEmotion intensity location createdAt')
+          .lean()
+      ]);
+
+      // Process data
+      const dashboardData = {
+        timeframe,
+        totalEmotions,
+        emotionBreakdown: emotionBreakdown.map(item => ({
+          emotion: item._id,
+          count: item.count,
+          avgIntensity: parseFloat(item.avgIntensity.toFixed(2))
+        })),
+        topLocations: topLocations.map(item => ({
+          city: item._id.city || 'Unknown',
+          country: item._id.country || 'Unknown',
+          count: item.count,
+          avgIntensity: parseFloat(item.avgIntensity.toFixed(2))
+        })),
+        recentActivity: recentActivity.map(item => ({
+          id: item._id,
+          emotion: item.coreEmotion,
+          intensity: item.intensity,
+          location: item.location,
+          timestamp: item.createdAt
+        }))
+      };
+
+      res.json({
+        success: true,
+        data: dashboardData
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch dashboard data'
+      });
+    }
+  }
 );
 
 /**

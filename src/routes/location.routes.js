@@ -7,7 +7,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// ✅ Basic validation middleware (if you don't have express-validator)
+// . Basic validation middleware (if you don't have express-validator)
 const validateCoordinates = (req, res, next) => {
   const { coordinates } = req.query.coordinates ? req.query : req.body;
   
@@ -66,7 +66,7 @@ const validateConsentLevel = (req, res, next) => {
   next();
 };
 
-// ✅ Location consent management routes
+// . Location consent management routes
 router.put('/consent', 
   authMiddleware, 
   validateConsentLevel,
@@ -84,28 +84,28 @@ router.get('/consent',
   LocationController.getLocationConsent
 );
 
-// ✅ Location-based insights and analytics
+// . Location-based insights and analytics
 router.get('/insights', 
   authMiddleware,
   validateCoordinates,
   LocationController.getLocationInsights
 );
 
-// ✅ IP-based location processing (fallback)
+// . IP-based location processing (fallback)
 router.post('/ip-location', 
   authMiddleware,
   validateConsentLevel,
   LocationController.processIPLocation
 );
 
-// ✅ Nearby resources and support
+// . Nearby resources and support
 router.get('/nearby-resources', 
   authMiddleware,
   validateCoordinates,
   LocationController.getNearbyResources
 );
 
-// ✅ Geocoding utilities
+// . Geocoding utilities
 router.get('/reverse-geocode', 
   authMiddleware,
   (req, res, next) => {
@@ -133,7 +133,7 @@ router.get('/reverse-geocode',
   LocationController.reverseGeocode
 );
 
-// ✅ Public anonymized statistics (no auth required)
+// . Public anonymized statistics (no auth required)
 router.get('/stats', 
   (req, res, next) => {
     const { timeRange } = req.query;
@@ -150,7 +150,7 @@ router.get('/stats',
   LocationController.getLocationStats
 );
 
-// ✅ Crisis support endpoints (high priority)
+// . Crisis support endpoints (high priority)
 router.post('/crisis-resources', 
   authMiddleware,
   validateCoordinates,
@@ -169,7 +169,7 @@ router.post('/crisis-resources',
   LocationController.getCrisisResources
 );
 
-// ✅ Location-based mood patterns (for research/insights)
+// . Location-based mood patterns (for research/insights)
 router.get('/mood-patterns', 
   authMiddleware,
   validateCoordinates,
@@ -198,7 +198,7 @@ router.get('/mood-patterns',
   LocationController.getMoodPatterns
 );
 
-// ✅ Find nearby Emora users (for community features)
+// . Find nearby Emora users (for community features)
 router.get('/nearby-community', 
   authMiddleware,
   validateCoordinates,
@@ -220,7 +220,7 @@ router.get('/nearby-community',
   LocationController.getNearbyCommunity
 );
 
-// ✅ Update location sharing preferences
+// . Update location sharing preferences
 router.patch('/preferences', 
   authMiddleware,
   (req, res, next) => {

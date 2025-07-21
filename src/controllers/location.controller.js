@@ -3,7 +3,7 @@ import logger from '../utils/logger.js';
 
 class LocationController {
 
-  // ✅ Update location consent and process location
+  // . Update location consent and process location
   async updateLocationConsent(req, res) {
     try {
       const userId = req.user.id;
@@ -66,7 +66,7 @@ class LocationController {
     }
   }
 
-  // ✅ Process IP-based location (fallback)
+  // . Process IP-based location (fallback)
   async processIPLocation(req, res) {
     try {
       const userId = req.user.id;
@@ -96,7 +96,7 @@ class LocationController {
     }
   }
 
-  // ✅ Get nearby support resources
+  // . Get nearby support resources
   async getNearbyResources(req, res) {
     try {
       const userId = req.user.id;
@@ -167,7 +167,7 @@ class LocationController {
     }
   }
 
-  // ✅ Get current location consent status
+  // . Get current location consent status
   async getLocationConsent(req, res) {
     try {
       const userId = req.user.id;
@@ -201,7 +201,7 @@ class LocationController {
     }
   }
 
-  // ✅ Reverse geocode coordinates to address
+  // . Reverse geocode coordinates to address
   async reverseGeocode(req, res) {
     try {
       const { latitude, longitude } = req.query;
@@ -243,7 +243,7 @@ class LocationController {
     }
   }
 
-  // ✅ Get aggregated location stats (anonymized)
+  // . Get aggregated location stats (anonymized)
   async getLocationStats(req, res) {
     try {
       const { timeRange = '7d' } = req.query;
@@ -328,7 +328,7 @@ class LocationController {
     }
   }
 
-  // ✅ Crisis support endpoints (high priority)
+  // . Crisis support endpoints (high priority)
   async getCrisisResources(req, res) {
     try {
       const { coordinates, urgencyLevel = 'crisis' } = req.body;
@@ -406,14 +406,14 @@ class LocationController {
   }
 }
 
-//   // ✅ Find nearby community members
+//   // . Find nearby community members
 //   async getNearbyCommu,
 //         message: 'Failed to update location consent'
 //       });
 //     }
 //   }
 
-//   // ✅ Revoke location consent and anonymize data
+//   // . Revoke location consent and anonymize data
 //   async revokeLocationConsent(req, res) {
 //     try {
 //       const userId = req.user.id;
@@ -437,7 +437,7 @@ class LocationController {
 //     }
 //   }
 
-//   // ✅ Get location-based insights and suggestions
+//   // . Get location-based insights and suggestions
 //   async getLocationInsights(req, res) {
 //     try {
 //       const userId = req.user.id;

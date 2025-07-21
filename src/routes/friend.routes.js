@@ -10,13 +10,10 @@ const router = express.Router();
 // Apply authentication to all friend routes
 router.use(authenticate);
 
-// ❌ REMOVED: Timeout middleware that was causing 408 timeouts
-// router.use(timeoutMiddleware(15000));
-
-// More reasonable rate limiting
+// Rate limiting for friend requests
 const friendRequestLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15, // 15 requests per 15 minutes
+  max: 15,
   message: 'Too many friend requests. Please try again in 15 minutes.',
   keyGenerator: (req) => req.user?.id || req.ip,
   handler: (req, res) => {
@@ -30,26 +27,42 @@ const friendRequestLimit = rateLimit({
 
 const checkInLimit = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10, // 10 check-ins per 5 minutes
+  max: 10,
   message: 'Too many check-ins, please try again later'
 });
 
-// Core routes with proper rate limiting and validation
+// Friend request routes
 router.post('/request/:recipientId', friendRequestLimit, validateRequest(validateFriendRequest), friendController.sendFriendRequest);
-router.post('/respond', validateRequest(validateFriendResponse), friendController.respondToFriendRequest);
-router.get('/requests', friendController.getPendingRequests);
-router.get('/pending', friendController.getPendingRequests);
-router.get('/', friendController.getFriends);
-router.get('/list', friendController.getFriends); // Alias for Flutter compatibility
-router.get('/suggestions', friendController.getFriendSuggestions);
-router.get('/search', friendController.searchUsers);
 router.delete('/request/:userId', friendController.cancelFriendRequest);
+router.post('/respond', validateRequest(validateFriendResponse), friendController.respondToFriendRequest);
+
+// Friend list and suggestions
+router.get('/list', friendController.getFriends); // Main friends list
+router.get('/suggestions', friendController.getFriendSuggestions);
+
+// Search routes
+router.get('/search', friendController.searchUsers); // Friend suggestions search (excludes friends/self)
+router.get('/search-all', friendController.searchAllUsers); // Global user search (excludes only self)
+
+// Pending/requests
+router.get('/pending', friendController.getPendingRequests);
+
+// Remove friend
 router.delete('/:friendId', friendController.removeFriend);
 
-// Additional routes
+// Check-in
 router.post('/check-in/:friendId', checkInLimit, validateRequest(validateCheckIn), friendController.sendCheckIn);
+
+// Friend mood/activity/insights
 router.get('/:friendId/moods', friendController.getFriendMoods);
+router.get('/:friendId/insights', friendController.getFriendMoodInsights);
+router.get('/activity/feed', friendController.getFriendMoodActivityFeed);
+router.post('/moods/:moodId/reactions', friendController.sendMoodReaction);
+
+// Block user
 router.post('/block/:userId', friendController.blockUser);
+
+// Friendship stats
 router.get('/stats/overview', friendController.getFriendshipStats);
 
 export default router;

@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
 import locationService from './location.service.js';
 
 class MoodService {
-  // ✅ ENHANCED: Your existing createMood method with better location handling
+  // . ENHANCED: Your existing createMood method with better location handling
   async createMood(userId, moodData, req) {
     try {
       // Get user's location preferences
@@ -25,16 +25,16 @@ class MoodService {
         }
       }
 
-      // ✅ NEW: Enhanced mood data with better context
+      // . NEW: Enhanced mood data with better context
       const mood = new Mood({
         userId,
         emotion: moodData.emotion,
         intensity: moodData.intensity || 3,
         
-        // ✅ Enhanced location with consent tracking
+        // . Enhanced location with consent tracking
         location: location || locationService.getDefaultLocation(),
         
-        // ✅ Enhanced context
+        // . Enhanced context
         context: {
           weather: moodData.context?.weather || 'unknown',
           temperature: moodData.context?.temperature,
@@ -45,7 +45,7 @@ class MoodService {
           stressLevel: moodData.context?.stressLevel
         },
         
-        // ✅ Enhanced mood details
+        // . Enhanced mood details
         triggers: moodData.triggers || [],
         coping_strategies: moodData.coping_strategies || [],
         
@@ -58,7 +58,7 @@ class MoodService {
 
       await mood.save();
 
-      // ✅ NEW: Get location-based suggestions if location available
+      // . NEW: Get location-based suggestions if location available
       let locationSuggestions = [];
       if (location && location.hasUserConsent && location.coordinates) {
         try {
@@ -106,7 +106,7 @@ class MoodService {
     }
   }
 
-  // ✅ Your existing getUserMoods method (unchanged)
+  // . Your existing getUserMoods method (unchanged)
   async getUserMoods(userId, options = {}) {
     const {
       page = 1,
@@ -152,7 +152,7 @@ class MoodService {
     }
   }
 
-  // ✅ ENHANCED: Your existing getUserMoodStats with location insights
+  // . ENHANCED: Your existing getUserMoodStats with location insights
   async getUserMoodStats(userId, period = '30d') {
     const cacheKey = `user_mood_stats:${userId}:${period}`;
     
@@ -187,7 +187,7 @@ class MoodService {
                 }
               }
             ],
-            // ✅ NEW: Activity patterns
+            // . NEW: Activity patterns
             activityPatterns: [
               {
                 $group: {
@@ -199,7 +199,7 @@ class MoodService {
               },
               { $sort: { count: -1 } }
             ],
-            // ✅ NEW: Location patterns (if consent given)
+            // . NEW: Location patterns (if consent given)
             locationPatterns: [
               {
                 $match: { 'location.hasUserConsent': true }
@@ -234,7 +234,7 @@ class MoodService {
                   totalMoods: { $sum: 1 },
                   avgIntensity: { $avg: '$intensity' },
                   uniqueEmotions: { $addToSet: '$emotion' },
-                  // ✅ NEW: Enhanced stats
+                  // . NEW: Enhanced stats
                   hasLocationData: { 
                     $sum: { $cond: [{ $eq: ['$location.hasUserConsent', true] }, 1, 0] }
                   },
@@ -259,7 +259,7 @@ class MoodService {
           category: this.getEmotionCategory(item._id)
         })),
         timePatterns: result.timePatterns,
-        // ✅ NEW: Enhanced patterns
+        // . NEW: Enhanced patterns
         activityPatterns: result.activityPatterns,
         locationPatterns: result.locationPatterns,
         dailyStats: result.dailyStats,
@@ -285,7 +285,7 @@ class MoodService {
     }
   }
 
-  // ✅ NEW: Get location-based mood insights
+  // . NEW: Get location-based mood insights
   async getLocationBasedMoodInsights(userId, coordinates, radiusKm = 50) {
     const cacheKey = `location_mood_insights:${userId}:${coordinates?.join(',') || 'none'}:${radiusKm}`;
     
@@ -350,7 +350,7 @@ class MoodService {
     }
   }
 
-  // ✅ NEW: Generate personalized insights from location data
+  // . NEW: Generate personalized insights from location data
   generatePersonalizedLocationInsights(userMoods, communityPatterns) {
     const insights = [];
 
@@ -423,7 +423,7 @@ class MoodService {
     return insights;
   }
 
-  // ✅ Your existing methods (unchanged)
+  // . Your existing methods (unchanged)
   async deleteMood(userId, moodId) {
     try {
       const mood = await Mood.findOneAndDelete({ 
@@ -447,7 +447,7 @@ class MoodService {
     }
   }
 
-  // ✅ Your existing methods with minor enhancements
+  // . Your existing methods with minor enhancements
   getTimeFilter(period) {
     const now = new Date();
     let startDate;

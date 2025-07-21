@@ -3,15 +3,8 @@ import { Router } from 'express';
 import moodController from '../controllers/mood.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { createRateLimit } from '../middleware/rate-limit.middleware.js';
-import { validateMoodEntry } from '../validators/mood.validator.js';
 
 const router = Router();
-
-// Debug logging
-console.log('🔍 Mood Routes Debug:');
-console.log('moodController:', typeof moodController);
-console.log('authMiddleware:', typeof authMiddleware);
-console.log('createRateLimit:', typeof createRateLimit);
 
 // Apply rate limiting to all mood routes
 router.use(createRateLimit(
@@ -24,115 +17,39 @@ router.use(createRateLimit(
  * @route   POST /api/moods
  * @desc    Create a new mood entry
  * @access  Private (requires authentication)
- * @body    {emotion, intensity, location?, tags?, note?, isAnonymous?, source?}
+ * @body    {type, emotion, intensity, note?, tags?, location?, context?, privacy?, source?}
  */
-router.post('/',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  validateMoodEntry || ((req, res, next) => next()),
-  moodController?.createMood || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'createMood controller method not implemented'
-    });
-  })
-);
+router.post('/', authMiddleware, moodController.logMood);
 
 /**
  * @route   GET /api/moods
  * @desc    Get user's mood entries
  * @access  Private (requires authentication)
- * @query   {page?, limit?, emotion?, startDate?, endDate?, sortBy?, sortOrder?}
+ * @query   {limit?, offset?, startDate?, endDate?, type?, minIntensity?, maxIntensity?}
  */
-router.get('/',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.getUserMoods || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'getUserMoods controller method not implemented'
-    });
-  })
-);
+router.get('/', authMiddleware, moodController.getUserMoods);
 
 /**
- * @route   GET /api/moods/stats
- * @desc    Get user's mood statistics
+ * @route   GET /api/moods/combined
+ * @desc    Get combined moods and emotions
  * @access  Private (requires authentication)
- * @query   {period?}
+ * @query   {limit?, offset?, startDate?, endDate?}
  */
-router.get('/stats',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.getUserMoodStats || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'getUserMoodStats controller method not implemented'
-    });
-  })
-);
+router.get('/combined', authMiddleware, moodController.getCombinedMoodsEmotions);
 
 /**
- * @route   GET /api/moods/history
- * @desc    Get user's mood history
+ * @route   DELETE /api/moods/clear-history
+ * @desc    Clear user's mood history
  * @access  Private (requires authentication)
- * @query   {days?}
  */
-router.get('/history',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.getUserMoodHistory || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'getUserMoodHistory controller method not implemented'
-    });
-  })
-);
+router.delete('/clear-history', authMiddleware, moodController.clearMoodHistory);
 
 /**
- * @route   GET /api/moods/:moodId
- * @desc    Get a specific mood entry
+ * @route   GET /api/moods/debug
+ * @desc    Debug endpoint to check user mood data
  * @access  Private (requires authentication)
- * @params  {moodId}
  */
-router.get('/:moodId',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.getMoodById || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'getMoodById controller method not implemented'
-    });
-  })
-);
-
-/**
- * @route   PUT /api/moods/:moodId
- * @desc    Update a mood entry
- * @access  Private (requires authentication)
- * @params  {moodId}
- * @body    {emotion?, intensity?, tags?, note?, isAnonymous?}
- */
-router.put('/:moodId',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.updateMood || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'updateMood controller method not implemented'
-    });
-  })
-);
-
-/**
- * @route   DELETE /api/moods/:moodId
- * @desc    Delete a mood entry
- * @access  Private (requires authentication)
- * @params  {moodId}
- */
-router.delete('/:moodId',
-  authMiddleware?.required || authMiddleware || ((req, res, next) => next()),
-  moodController?.deleteMood || ((req, res) => {
-    res.status(501).json({
-      success: false,
-      message: 'deleteMood controller method not implemented'
-    });
-  })
-);
+router.get('/debug', authMiddleware, moodController.debugUserMoods);
 
 /**
  * @route   GET /api/moods/health

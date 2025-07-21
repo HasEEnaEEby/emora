@@ -50,7 +50,7 @@ export const validateRegistration = [
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/)
     .withMessage('Password must contain uppercase, lowercase, number, and special character'),
   
-  // ✅ Add confirmPassword validation
+  // . Add confirmPassword validation
   body('confirmPassword')
     .isLength({ min: 8, max: 128 })
     .withMessage('Password confirmation must be between 8 and 128 characters')

@@ -123,7 +123,6 @@ export const emotionLogSchema = Joi.object({
       Joi.object({
         title: Joi.string().max(200),
         artist: Joi.string().max(200),
-        spotifyId: Joi.string().max(100)
       })
     ).max(3).messages({
       'array.max': 'Maximum 3 associated songs allowed'

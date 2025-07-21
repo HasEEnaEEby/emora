@@ -13,12 +13,12 @@ const router = express.Router();
 // GET /api/user/profile - Get user profile with real data
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    console.log(`🔍 Fetching profile for user ID: ${req.user.userId}`);
+    console.log(`. Fetching profile for user ID: ${req.user.userId}`);
     
     const user = await User.findById(req.user.userId).select('-password -refreshTokens');
     
     if (!user) {
-      console.log(`❌ User not found: ${req.user.userId}`);
+      console.log(`. User not found: ${req.user.userId}`);
       return res.status(404).json({
         status: 'error',
         message: 'User not found',
@@ -26,11 +26,11 @@ router.get('/profile', authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`✅ User found: ${user.username}`);
+    console.log(`. User found: ${user.username}`);
 
     // Get real emotion data from database
     const emotionStats = await _calculateRealEmotionStats(user._id);
-    console.log(`📊 Emotion stats calculated:`, emotionStats);
+    console.log(`. Emotion stats calculated:`, emotionStats);
 
     // Calculate achievements based on real data
     const achievements = await _calculateRealAchievements(user, emotionStats);
@@ -43,6 +43,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
     const profileData = {
       id: user._id,
       username: user.username,
+      displayName: user.displayName || user.profile?.displayName || user.username,
       email: user.email,
       pronouns: user.pronouns,
       ageGroup: user.ageGroup,
@@ -64,6 +65,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
         lastEmotionDate: emotionStats.lastEmotionDate,
         favoriteEmotion: emotionStats.favoriteEmotion,
         emotionDiversity: emotionStats.emotionDiversity,
+        lastUpdated: new Date().toISOString(),
       },
       preferences: user.preferences || {
         notifications: {
@@ -84,7 +86,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
       location: user.location,
     };
 
-    console.log(`✅ Profile data prepared for user: ${user.username}`);
+    console.log(`. Profile data prepared for user: ${user.username}`);
 
     res.json({
       status: 'success',
@@ -93,7 +95,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Profile fetch error:', error);
+    console.error('. Profile fetch error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch profile',
@@ -104,16 +106,20 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
 // PATCH /api/user/profile - Update user profile
 router.patch('/profile', authMiddleware, [
-  body('displayName').optional().trim().isLength({ min: 1, max: 50 }),
-  body('bio').optional().trim().isLength({ max: 200 }),
   body('pronouns').optional().isIn(['She / Her', 'He / Him', 'They / Them', 'Other']),
   body('ageGroup').optional().isIn(['Under 18', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']),
-  body('selectedAvatar').optional().isIn(['panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin']),
-  body('themeColor').optional().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/),
+  body('selectedAvatar').optional().isIn(['panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin', 'dragon']),
+  body('profile.displayName').optional().trim().isLength({ min: 1, max: 50 }),
+  body('profile.bio').optional().trim().isLength({ max: 200 }),
+  body('profile.themeColor').optional().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/),
 ], async (req, res) => {
   try {
+    console.log('. Profile update request body:', req.body);
+    console.log('. User ID:', req.user.userId);
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('. Validation errors:', errors.array());
       return res.status(400).json({
         status: 'error',
         message: 'Validation failed',
@@ -122,7 +128,7 @@ router.patch('/profile', authMiddleware, [
       });
     }
 
-    const { displayName, bio, pronouns, ageGroup, selectedAvatar, themeColor } = req.body;
+    const { pronouns, ageGroup, selectedAvatar, profile } = req.body;
     
     const user = await User.findById(req.user.userId);
     if (!user) {
@@ -139,16 +145,33 @@ router.patch('/profile', authMiddleware, [
     }
 
     // Update fields
-    if (displayName !== undefined) user.profile.displayName = displayName;
-    if (bio !== undefined) user.profile.bio = bio;
     if (pronouns !== undefined) user.pronouns = pronouns;
     if (ageGroup !== undefined) user.ageGroup = ageGroup;
     if (selectedAvatar !== undefined) user.selectedAvatar = selectedAvatar;
-    if (themeColor !== undefined) user.profile.themeColor = themeColor;
+    
+    // Update profile fields if profile object is provided
+    if (profile) {
+      console.log('. Updating profile fields:', profile);
+      if (profile.displayName !== undefined) {
+        user.profile.displayName = profile.displayName;
+        user.displayName = profile.displayName; // keep top-level in sync
+      }
+      if (profile.bio !== undefined) user.profile.bio = profile.bio;
+      if (profile.themeColor !== undefined) user.profile.themeColor = profile.themeColor;
+    }
+
+    console.log('. User before save:', {
+      id: user._id,
+      username: user.username,
+      pronouns: user.pronouns,
+      ageGroup: user.ageGroup,
+      selectedAvatar: user.selectedAvatar,
+      profile: user.profile
+    });
 
     await user.save();
 
-    console.log(`✅ Profile updated for user: ${user.username}`);
+    console.log(`. Profile updated for user: ${user.username}`);
 
     res.json({
       status: 'success',
@@ -164,7 +187,12 @@ router.patch('/profile', authMiddleware, [
     });
 
   } catch (error) {
-    console.error('❌ Profile update error:', error);
+    console.error('. Profile update error:', error);
+    console.error('. Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       status: 'error',
       message: 'Failed to update profile',
@@ -268,7 +296,7 @@ router.put('/preferences', authMiddleware, async (req, res) => {
 
     await user.save();
 
-    console.log(`✅ Preferences updated for user: ${user.username}`);
+    console.log(`. Preferences updated for user: ${user.username}`);
     console.log(`📱 Updated preferences:`, user.preferences);
 
     // Return preferences in the format the frontend expects
@@ -295,7 +323,7 @@ router.put('/preferences', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Preferences update error:', error);
+    console.error('. Preferences update error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to update preferences',
@@ -332,7 +360,7 @@ router.get('/achievements', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Achievements fetch error:', error);
+    console.error('. Achievements fetch error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch achievements'
@@ -400,7 +428,7 @@ router.post('/export-data', authMiddleware, async (req, res) => {
       exportData.achievements = achievements;
     }
 
-    console.log(`✅ Data export generated for user: ${user.username}`);
+    console.log(`. Data export generated for user: ${user.username}`);
 
     res.json({
       status: 'success',
@@ -414,7 +442,7 @@ router.post('/export-data', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Data export error:', error);
+    console.error('. Data export error:', error);
     res.status(500).json({
       status: 'error',
       message: 'Failed to export data'
@@ -422,10 +450,99 @@ router.post('/export-data', authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/user/stats/comprehensive - Get comprehensive user statistics
+router.get('/stats/comprehensive', authMiddleware, async (req, res) => {
+  try {
+    console.log(`📊 Fetching comprehensive stats for user ID: ${req.user.userId}`);
+    
+    const user = await User.findById(req.user.userId).select('-password -refreshTokens');
+    
+    if (!user) {
+      console.log(`❌ User not found: ${req.user.userId}`);
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+        errorCode: 'USER_NOT_FOUND'
+      });
+    }
+
+    console.log(`✅ User found: ${user.username}`);
+
+    // Get real emotion data from database
+    const emotionStats = await _calculateRealEmotionStats(user._id);
+    console.log(`📈 Emotion stats calculated:`, emotionStats);
+
+    // Calculate achievements based on real data
+    const achievements = await _calculateRealAchievements(user, emotionStats);
+    const earnedAchievements = achievements.filter(a => a.earned);
+    
+    // Calculate additional stats
+    const joinedDaysAgo = Math.floor((new Date() - user.createdAt) / (1000 * 60 * 60 * 24));
+    const userLevel = _calculateUserLevel(emotionStats.totalEntries, emotionStats.currentStreak);
+    
+    // Get friends count (if available)
+    const totalFriends = user.analytics?.totalFriends || 0;
+    const helpedFriends = user.analytics?.totalComfortReactionsSent || 0;
+    
+    const comprehensiveStats = {
+      totalEntries: emotionStats.totalEntries,
+      currentStreak: emotionStats.currentStreak,
+      longestStreak: emotionStats.longestStreak,
+      favoriteEmotion: emotionStats.favoriteEmotion,
+      totalFriends: totalFriends,
+      helpedFriends: helpedFriends,
+      badgesEarned: earnedAchievements.length,
+      level: userLevel,
+      emotionDiversity: emotionStats.emotionDiversity,
+      joinedDaysAgo: joinedDaysAgo,
+      lastEmotionDate: emotionStats.lastEmotionDate,
+      lastUpdated: new Date().toISOString(),
+      achievements: {
+        total: achievements.length,
+        earned: earnedAchievements.length,
+        progress: earnedAchievements.length > 0 ? (earnedAchievements.length / achievements.length * 100).toFixed(1) : '0.0',
+      },
+      streaks: {
+        current: emotionStats.currentStreak,
+        longest: emotionStats.longestStreak,
+        isActive: emotionStats.currentStreak > 0,
+      },
+      activity: {
+        totalEntries: emotionStats.totalEntries,
+        averagePerDay: joinedDaysAgo > 0 ? (emotionStats.totalEntries / joinedDaysAgo).toFixed(2) : '0.00',
+        lastActivity: emotionStats.lastEmotionDate,
+      },
+    };
+
+    console.log(`📊 Comprehensive stats prepared for user: ${user.username}`);
+    console.log(`📊 Stats summary:`, {
+      totalEntries: comprehensiveStats.totalEntries,
+      currentStreak: comprehensiveStats.currentStreak,
+      totalFriends: comprehensiveStats.totalFriends,
+      badgesEarned: comprehensiveStats.badgesEarned,
+      level: comprehensiveStats.level,
+    });
+
+    res.json({
+      status: 'success',
+      message: 'Comprehensive stats retrieved successfully',
+      data: comprehensiveStats
+    });
+
+  } catch (error) {
+    console.error('❌ Comprehensive stats fetch error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch comprehensive stats',
+      errorCode: 'STATS_FETCH_ERROR'
+    });
+  }
+});
+
 // Helper functions
 async function _calculateRealEmotionStats(userId) {
   try {
-    console.log(`📊 Calculating real emotion stats for user: ${userId}`);
+    console.log(`. Calculating real emotion stats for user: ${userId}`);
     
     // Get all emotions for this user
     const emotions = await Emotion.find({ userId })
@@ -446,7 +563,6 @@ async function _calculateRealEmotionStats(userId) {
       };
     }
 
-    // Calculate basic stats
     const totalEntries = emotions.length;
     const lastEmotionDate = emotions[0].createdAt;
 
@@ -477,11 +593,11 @@ async function _calculateRealEmotionStats(userId) {
       emotionBreakdown,
     };
 
-    console.log(`✅ Stats calculated:`, stats);
+    console.log(`. Stats calculated:`, stats);
     return stats;
 
   } catch (error) {
-    console.error('❌ Error calculating emotion stats:', error);
+    console.error('. Error calculating emotion stats:', error);
     return {
       totalEntries: 0,
       currentStreak: 0,

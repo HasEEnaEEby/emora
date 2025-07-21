@@ -15,19 +15,17 @@ import errorMiddleware from './middleware/error.middleware.js';
 import setupSocketHandlers from './sockets/index.js';
 import logger from './utils/logger.js';
 
-// Import main routes (organized and complete)
 import routes from './routes/index.js';
+import insightRoutes from './routes/insight.routes.js';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
 
-// ✅ ADDED: Configure server timeouts
-server.timeout = 120000; // 2 minutes
-server.keepAliveTimeout = 65000; // 65 seconds
-server.headersTimeout = 66000; // 66 seconds
+server.timeout = 120000; 
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
 
 const io = new Server(server, {
   cors: {
@@ -155,8 +153,9 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// ✅ MOUNT ALL ROUTES (from organized routes/index.js)
+// . MOUNT ALL ROUTES (from organized routes/index.js)
 app.use('/', routes);
+app.use('/api/insight', insightRoutes);
 
 // API Documentation endpoint
 app.get('/api/docs', (req, res) => {
@@ -209,7 +208,7 @@ app.get('/', (req, res) => {
     features: [
       '🎯 Inside Out emotion mapping',
       '🌍 Global emotion heatmap',
-      '📊 Advanced analytics & insights',
+      '. Advanced analytics & insights',
       '🔒 Privacy-first design',
       '⚡ Real-time updates',
       '🎨 Professional API design'
@@ -307,7 +306,7 @@ const isPortAvailable = (port) => {
 
 // Function to find available port
 const findAvailablePort = async (startPort = 5000, maxPort = 5010) => {
-  // ✅ Fix: Ensure maxPort is always greater than startPort
+  // . Fix: Ensure maxPort is always greater than startPort
   const actualMaxPort = Math.max(maxPort, startPort + 10);
   
   for (let port = startPort; port <= actualMaxPort; port++) {
@@ -329,9 +328,9 @@ const startServer = async () => {
     const isPreferredPortAvailable = await isPortAvailable(preferredPort);
     
     if (!isPreferredPortAvailable) {
-      logger.warn(`⚠️  Port ${preferredPort} is busy`);
+      logger.warn(`.  Port ${preferredPort} is busy`);
       actualPort = await findAvailablePort(preferredPort + 1);
-      logger.info(`🔍 Found available port: ${actualPort}`);
+      logger.info(`. Found available port: ${actualPort}`);
     }
 
     // Start the server
@@ -342,11 +341,11 @@ const startServer = async () => {
       console.log(`📍 Local:      http://localhost:${actualPort}`);
       console.log(`🌐 Network:    http://0.0.0.0:${actualPort}`);
       console.log(`🌍 Environment: ${config.NODE_ENV}`);
-      console.log(`💾 Database:   MongoDB Connected`);
+      console.log(`. Database:   MongoDB Connected`);
       console.log(`🔴 Redis:      ${config.REDIS_URL ? 'Connected' : 'Disabled'}`);
-      console.log(`📊 API Docs:   http://localhost:${actualPort}/api/docs`);
+      console.log(`. API Docs:   http://localhost:${actualPort}/api/docs`);
       console.log(`🏠 Dashboard:  http://localhost:${actualPort}/api/dashboard/home`);
-      console.log(`📋 Onboarding: http://localhost:${actualPort}/onboarding/steps`);
+      console.log(`. Onboarding: http://localhost:${actualPort}/onboarding/steps`);
       console.log(`🎭 Emotions:   http://localhost:${actualPort}/api/emotions/constants`);
       console.log(`⚡ Real-time:  WebSocket enabled`);
       console.log(`📈 Analytics:  Professional features enabled`);
@@ -357,10 +356,10 @@ const startServer = async () => {
       }
 
       // Log professional features status
-      logger.info('✅ Professional Features Enabled:');
+      logger.info('. Professional Features Enabled:');
       logger.info('   🎯 Inside Out emotion mapping');
       logger.info('   🌍 Global emotion heatmap');
-      logger.info('   📊 Advanced analytics & insights');
+      logger.info('   . Advanced analytics & insights');
       logger.info('   🔒 Privacy-first anonymous tracking');
       logger.info('   ⚡ Real-time WebSocket updates');
       logger.info('   🎨 Professional API design');
@@ -370,23 +369,23 @@ const startServer = async () => {
     // Server error handling
     server.on('error', async (err) => {
       if (err.code === 'EADDRINUSE') {
-        logger.error(`❌ Port ${actualPort} is still in use`);
+        logger.error(`. Port ${actualPort} is still in use`);
         try {
           const newPort = await findAvailablePort(actualPort + 1);
           logger.info(`🔄 Trying port ${newPort}`);
           server.listen(newPort);
         } catch (portError) {
-          logger.error('❌ Could not find available port:', portError.message);
+          logger.error('. Could not find available port:', portError.message);
           process.exit(1);
         }
       } else {
-        logger.error('❌ Server error:', err);
+        logger.error('. Server error:', err);
         process.exit(1);
       }
     });
 
   } catch (error) {
-    logger.error('❌ Failed to start server:', error);
+    logger.error('. Failed to start server:', error);
     process.exit(1);
   }
 };
@@ -397,7 +396,7 @@ const gracefulShutdown = (signal) => {
   
   server.close((err) => {
     if (err) {
-      logger.error('❌ Error during server shutdown:', err);
+      logger.error('. Error during server shutdown:', err);
       process.exit(1);
     }
     
@@ -405,14 +404,14 @@ const gracefulShutdown = (signal) => {
     io.close();
     logger.info('📡 WebSocket server closed');
     
-    logger.info('✅ Server closed successfully');
-    logger.info('✅ EMORA Backend shutdown complete');
+    logger.info('. Server closed successfully');
+    logger.info('. EMORA Backend shutdown complete');
     process.exit(0);
   });
 
   // Force shutdown after 30 seconds
   setTimeout(() => {
-    logger.error('❌ Forced shutdown after 30s timeout');
+    logger.error('. Forced shutdown after 30s timeout');
     process.exit(1);
   }, 30000);
 };

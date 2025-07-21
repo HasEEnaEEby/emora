@@ -9,7 +9,7 @@ import { handleAsync } from '../utils/helpers.js';
 import logger from '../utils/logger.js';
 
 class UserController {
-  // ✅ Get home dashboard data (matches Flutter app expectation)
+  // . Get home dashboard data (matches Flutter app expectation)
   getHomeData = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -115,12 +115,12 @@ class UserController {
       });
 
     } catch (error) {
-      logger.error('❌ Error getting home data:', error);
+      logger.error('. Error getting home data:', error);
       errorResponse(res, 'Failed to retrieve home data', 500, error.message);
     }
   });
 
-  // ✅ Log mood/emotion (wrapper around existing mood service)
+  // . Log mood/emotion (wrapper around existing mood service)
   logMood = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -196,12 +196,12 @@ class UserController {
       }, 201);
 
     } catch (error) {
-      logger.error('❌ Error logging mood:', error);
+      logger.error('. Error logging mood:', error);
       errorResponse(res, 'Failed to log mood', 500, error.message);
     }
   });
 
-  // ✅ Mark first-time login as complete
+  // . Mark first-time login as complete
   markFirstTimeLoginComplete = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -227,7 +227,7 @@ class UserController {
         return errorResponse(res, 'User not found', 404);
       }
 
-      logger.info(`✅ First-time login marked complete for user: ${updatedUser.username}`);
+      logger.info(`. First-time login marked complete for user: ${updatedUser.username}`);
 
       successResponse(res, {
         message: 'First-time login marked as complete',
@@ -239,12 +239,12 @@ class UserController {
       });
 
     } catch (error) {
-      logger.error('❌ Error marking first-time login complete:', error);
+      logger.error('. Error marking first-time login complete:', error);
       errorResponse(res, 'Failed to mark first-time login complete', 500, error.message);
     }
   });
 
-  // ✅ Get user profile
+  // . Get user profile
   getProfile = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -267,12 +267,12 @@ class UserController {
       });
 
     } catch (error) {
-      logger.error('❌ Error getting user profile:', error);
+      logger.error('. Error getting user profile:', error);
       errorResponse(res, 'Failed to retrieve user profile', 500, error.message);
     }
   });
 
-  // ✅ Update user profile
+  // . Update user profile
   updateProfile = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -315,12 +315,12 @@ class UserController {
       });
 
     } catch (error) {
-      logger.error('❌ Error updating profile:', error);
+      logger.error('. Error updating profile:', error);
       errorResponse(res, 'Failed to update profile', 500, error.message);
     }
   });
 
-  // ✅ Get user statistics
+  // . Get user statistics
   getUserStats = handleAsync(async (req, res) => {
     try {
       const userId = req.user?.userId || req.user?.id;
@@ -369,7 +369,7 @@ class UserController {
       });
 
     } catch (error) {
-      logger.error('❌ Error getting user stats:', error);
+      logger.error('. Error getting user stats:', error);
       errorResponse(res, 'Failed to retrieve user statistics', 500, error.message);
     }
   });

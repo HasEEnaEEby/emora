@@ -9,10 +9,10 @@ export async function migrateMoodsToUnifiedEmotions() {
     logger.info('🔄 Starting mood to unified emotion migration...');
     
     const totalMoods = await Mood.countDocuments();
-    logger.info(`📊 Found ${totalMoods} moods to migrate`);
+    logger.info(`. Found ${totalMoods} moods to migrate`);
     
     if (totalMoods === 0) {
-      logger.info('✅ No moods to migrate');
+      logger.info('. No moods to migrate');
       return { migrated: 0, errors: 0 };
     }
     
@@ -100,11 +100,11 @@ export async function migrateMoodsToUnifiedEmotions() {
           migrated++;
           
           if (migrated % 50 === 0) {
-            logger.info(`✅ Migrated ${migrated}/${totalMoods} moods`);
+            logger.info(`. Migrated ${migrated}/${totalMoods} moods`);
           }
           
         } catch (error) {
-          logger.error(`❌ Error migrating mood ${mood._id}:`, error);
+          logger.error(`. Error migrating mood ${mood._id}:`, error);
           errors++;
         }
       }
@@ -114,7 +114,7 @@ export async function migrateMoodsToUnifiedEmotions() {
     return { migrated, errors, total: totalMoods };
     
   } catch (error) {
-    logger.error('❌ Migration failed:', error);
+    logger.error('. Migration failed:', error);
     throw error;
   }
 }

@@ -4,7 +4,7 @@ import onboardingController from '../controllers/onboarding.controller.js';
 
 const router = express.Router();
 
-// ✅ ONBOARDING ENDPOINTS ONLY - Clean separation of concerns
+// . ONBOARDING ENDPOINTS ONLY - Clean separation of concerns
 
 // Get onboarding steps/flow information
 router.get('/steps', onboardingController.getOnboardingSteps);
@@ -18,8 +18,8 @@ router.post('/user-data', onboardingController.saveUserOnboardingData);
 // Complete anonymous onboarding
 router.post('/complete', onboardingController.completeOnboarding);
 
-// ❌ REMOVED: Registration and login endpoints moved to /api/auth/*
-// ❌ REMOVED: getOnboardingProgress - method doesn't exist in controller
+// . REMOVED: Registration and login endpoints moved to /api/auth/*
+// . REMOVED: getOnboardingProgress - method doesn't exist in controller
 // These endpoints caused confusion and violated clean architecture principles
 
 export default router;

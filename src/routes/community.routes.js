@@ -8,6 +8,9 @@ const router = express.Router();
 // All community routes require authentication
 router.use(authMiddleware);
 
+// Create a new community post
+router.post('/', communityController.createCommunityPost);
+
 // Get global community feed
 router.get('/global-feed', communityController.getGlobalFeed);
 

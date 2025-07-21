@@ -1,9 +1,11 @@
-// src/routes/emotion.routes.js - Updated with real logging
+// src/routes/emotion.routes.js - Updated with real logging and new endpoints
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import Emotion from '../models/emotion.model.js';
 import User from '../models/user.model.js';
+import emotionService from '../services/emotion.service.js';
+import { mapToPlutchikCoreEmotion } from '../constants/emotion-mappings.js';
 
 const router = express.Router();
 
@@ -30,11 +32,12 @@ router.post('/', authMiddleware, [
     
     console.log(`🎭 Logging emotion for user ${req.user.userId}: ${type}`);
 
-    // Create emotion entry
+    // Create emotion entry with proper field mapping
     const emotion = new Emotion({
       userId: req.user.userId,
       type: type.toLowerCase(),
       emotion: type.toLowerCase(), // For backward compatibility
+      coreEmotion: mapToPlutchikCoreEmotion(type), // Map to valid Plutchik core emotion
       intensity: parseInt(intensity),
       note: note || '',
       tags,
@@ -42,6 +45,11 @@ router.post('/', authMiddleware, [
         type: 'Point',
         coordinates: [location.longitude, location.latitude],
         address: location.address || null,
+        city: location.city || null,
+        country: location.country || null,
+        region: location.region || null,
+        hasUserConsent: true,
+        source: 'gps'
       } : null,
       context: context || {},
       createdAt: new Date(),
@@ -64,6 +72,7 @@ router.post('/', authMiddleware, [
         emotion: {
           id: emotion._id,
           type: emotion.type,
+          emotion: emotion.emotion,
           intensity: emotion.intensity,
           note: emotion.note,
           tags: emotion.tags,
@@ -83,6 +92,89 @@ router.post('/', authMiddleware, [
   }
 });
 
+// GET /api/emotions/insights - Get user emotion insights
+router.get('/insights', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`📊 Fetching insights for user: ${req.user.userId} (${timeframe})`);
+
+    const insights = await emotionService.getUserEmotionInsights(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Insights retrieved successfully',
+      data: insights
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching insights:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch insights'
+    });
+  }
+});
+
+// GET /api/emotions/analytics - Get emotion analytics for charts
+router.get('/analytics', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '7d' } = req.query;
+    
+    console.log(`📈 Fetching analytics for user: ${req.user.userId} (${timeframe})`);
+
+    const analytics = await emotionService.getEmotionAnalytics(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Analytics retrieved successfully',
+      data: analytics
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching analytics:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch analytics'
+    });
+  }
+});
+
+// GET /api/emotions/history - Get user emotion history
+router.get('/history', authMiddleware, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    
+    console.log(`📜 Fetching emotion history for user: ${req.user.userId}`);
+
+    const emotions = await emotionService.getUserEmotionHistory(
+      req.user.userId, 
+      parseInt(limit), 
+      parseInt(offset)
+    );
+
+    res.json({
+      status: 'success',
+      message: 'Emotion history retrieved successfully',
+      data: {
+        emotions,
+        pagination: {
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: emotions.length === parseInt(limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching emotion history:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch emotion history'
+    });
+  }
+});
+
 // GET /api/emotions - Get user emotions
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -92,6 +184,7 @@ router.get('/', authMiddleware, async (req, res) => {
       startDate, 
       endDate, 
       type,
+      emotion,
       minIntensity,
       maxIntensity 
     } = req.query;
@@ -105,9 +198,13 @@ router.get('/', authMiddleware, async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    // Add type filtering
-    if (type) {
-      query.type = type.toLowerCase();
+    // Add emotion filtering (handle both 'emotion' and 'type' fields)
+    if (emotion || type) {
+      const emotionType = emotion || type;
+      query.$or = [
+        { emotion: emotionType.toLowerCase() },
+        { type: emotionType.toLowerCase() }
+      ];
     }
 
     // Add intensity filtering
@@ -125,7 +222,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const total = await Emotion.countDocuments(query);
 
-    console.log(`📊 Found ${emotions.length} emotions for user ${req.user.userId}`);
+    console.log(`✅ Found ${emotions.length} emotions for user ${req.user.userId}`);
 
     res.json({
       status: 'success',
@@ -134,6 +231,7 @@ router.get('/', authMiddleware, async (req, res) => {
         emotions: emotions.map(emotion => ({
           id: emotion._id,
           type: emotion.type || emotion.emotion,
+          emotion: emotion.emotion || emotion.type,
           intensity: emotion.intensity,
           note: emotion.note,
           tags: emotion.tags || [],
@@ -195,6 +293,124 @@ router.get('/constants', (req, res) => {
       ]
     }
   });
+});
+
+// GET /api/emotions/comprehensive-insights - Get comprehensive insights for enhanced view
+router.get('/comprehensive-insights', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`🎯 Fetching comprehensive insights for user: ${req.user.userId} (${timeframe})`);
+
+    const insights = await emotionService.getComprehensiveInsights(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Comprehensive insights retrieved successfully',
+      data: insights
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching comprehensive insights:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch comprehensive insights'
+    });
+  }
+});
+
+router.get('/ai-insights', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`🤖 Fetching AI insights for user: ${req.user.userId} (${timeframe})`);
+
+    const aiInsights = await emotionService.getAIInsights(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'AI insights retrieved successfully',
+      data: aiInsights
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching AI insights:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch AI insights'
+    });
+  }
+});
+
+router.get('/predictions', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`🔮 Fetching predictions for user: ${req.user.userId} (${timeframe})`);
+
+    const predictions = await emotionService.getPredictions(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Predictions retrieved successfully',
+      data: predictions
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching predictions:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch predictions'
+    });
+  }
+});
+
+// GET /api/emotions/patterns - Get pattern analysis
+router.get('/patterns', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`🔍 Fetching patterns for user: ${req.user.userId} (${timeframe})`);
+
+    const patterns = await emotionService.getPatternAnalysis(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Pattern analysis retrieved successfully',
+      data: patterns
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching patterns:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch pattern analysis'
+    });
+  }
+});
+
+// GET /api/emotions/recommendations - Get personalized recommendations
+router.get('/recommendations', authMiddleware, async (req, res) => {
+  try {
+    const { timeframe = '30d' } = req.query;
+    
+    console.log(`💡 Fetching recommendations for user: ${req.user.userId} (${timeframe})`);
+
+    const recommendations = await emotionService.getRecommendations(req.user.userId, timeframe);
+
+    res.json({
+      status: 'success',
+      message: 'Recommendations retrieved successfully',
+      data: recommendations
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching recommendations:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch recommendations'
+    });
+  }
 });
 
 // GET /api/emotions/stats - Get emotion statistics
@@ -284,7 +500,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 // Helper functions
 async function _updateUserAnalytics(userId) {
   try {
-    console.log(`📊 Updating analytics for user: ${userId}`);
+    console.log(`. Updating analytics for user: ${userId}`);
     
     const user = await User.findById(userId);
     if (!user) return;
@@ -309,10 +525,10 @@ async function _updateUserAnalytics(userId) {
 
     await user.save();
     
-    console.log(`✅ Analytics updated: ${totalEmotionEntries} entries, ${currentStreak} current streak`);
+    console.log(`. Analytics updated: ${totalEmotionEntries} entries, ${currentStreak} current streak`);
 
   } catch (error) {
-    console.error('❌ Error updating user analytics:', error);
+    console.error('. Error updating user analytics:', error);
   }
 }
 
@@ -453,7 +669,7 @@ async function _checkForNewAchievements(userId) {
     return newAchievements;
     
   } catch (error) {
-    console.error('❌ Error checking achievements:', error);
+    console.error('. Error checking achievements:', error);
     return [];
   }
 }

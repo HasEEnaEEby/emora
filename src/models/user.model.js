@@ -16,17 +16,22 @@ const userSchema = new mongoose.Schema({
     unique: true,
     match: /^[a-zA-Z0-9_]+$/
   },
+  displayName: {
+    type: String,
+    trim: true,
+    maxlength: 50
+  },
   
   email: {
     type: String,
-    required: false,  // ✅ FIXED: Make email optional
+    required: false,  // . FIXED: Make email optional
     trim: true,
     lowercase: true,
     unique: true,
-    sparse: true,     // ✅ FIXED: Allow unique nullable values
+    sparse: true,     // . FIXED: Allow unique nullable values
     validate: {
       validator: function(v) {
-        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  // ✅ FIXED: Handle null/undefined
+        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  // . FIXED: Handle null/undefined
       },
       message: 'Please enter a valid email address'
     }
@@ -64,7 +69,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: [
       'panda', 'elephant', 'horse', 'rabbit', 'fox', 'zebra', 
-      'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin'
+      'bear', 'pig', 'raccoon', 'cat', 'dog', 'owl', 'penguin', 'dragon'
     ],
     default: 'panda'
   },
@@ -318,7 +323,7 @@ userSchema.index({ username: 1, email: 1 }, { unique: true });
 userSchema.index({ 'location.country': 1, 'location.city': 1 });
 userSchema.index({ isActive: 1, isOnline: 1 });
 
-// ✅ ADDED: Indexes for friend arrays to improve performance
+// . ADDED: Indexes for friend arrays to improve performance
 userSchema.index({ 'friends.userId': 1 });
 userSchema.index({ 'friendRequests.sent.userId': 1 });
 userSchema.index({ 'friendRequests.received.userId': 1 });
@@ -341,7 +346,7 @@ userSchema.pre('save', async function(next) {
   }
   
   try {
-    // ✅ FIXED: Use a consistent approach
+    // . FIXED: Use a consistent approach
     this.password = await bcrypt.hash(this.password, 12);
     next();
   } catch (error) {

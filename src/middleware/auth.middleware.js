@@ -26,7 +26,7 @@ export const authMiddleware = async (req, res, next) => {
       config.JWT_SECRET
     );
 
-    // ✅ DEBUG: Log token verification for development
+    // . DEBUG: Log token verification for development
     if (process.env.DEBUG_JWT === 'true') {
       logger.info('🔑 JWT Token verified successfully', {
         userId: decoded.userId,
@@ -153,6 +153,7 @@ export const auth = async (req, res, next) => {
 // Aliases for different naming conventions
 export const authenticate = authMiddleware;
 export const required = authMiddleware;
+export const authenticateToken = authMiddleware;
 
 // Default export with multiple auth methods
 const authMiddlewareExport = {
