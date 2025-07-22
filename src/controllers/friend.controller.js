@@ -443,8 +443,8 @@ class FriendController {
         })
         .sort((a, b) => new Date(b.friendshipDate) - new Date(a.friendshipDate));
 
-      // Get recent mood for each friend
-      const friendsWithMoods = await Promise.all(
+      // Get recent mood and recent community post for each friend
+      const friendsWithMoodsAndPosts = await Promise.all(
         friends.map(async (friend) => {
           try {
             // Get the most recent mood for this friend
@@ -476,11 +476,35 @@ class FriendController {
                 }
               };
             }
+
+            // Get the most recent community post for this friend
+            const recentCommunityPost = await CommunityPost.findOne({
+              userId: friend.id,
+              privacy: { $in: ['friends', 'public'] }
+            })
+            .sort({ createdAt: -1 })
+            .limit(1);
+
+            if (recentCommunityPost) {
+              friend.recentCommunityPost = {
+                id: recentCommunityPost._id,
+                name: recentCommunityPost.name || '',
+                username: friend.username,
+                displayName: friend.displayName,
+                selectedAvatar: friend.selectedAvatar,
+                emoji: recentCommunityPost.emoji,
+                location: recentCommunityPost.location,
+                message: recentCommunityPost.message || recentCommunityPost.content,
+                timestamp: recentCommunityPost.createdAt,
+                moodColor: recentCommunityPost.moodColor,
+                activityType: recentCommunityPost.activityType,
+                privacy: recentCommunityPost.privacy,
+                isAnonymous: recentCommunityPost.isAnonymous || false,
+              };
+            }
           } catch (error) {
-            logger.error(`Error getting recent mood for friend ${friend.id}:`, error);
-            // Continue without mood data if there's an error
+            logger.error(`Error getting recent mood or post for friend ${friend.id}:`, error);
           }
-          
           return friend;
         })
       );
@@ -488,7 +512,7 @@ class FriendController {
       // Pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + parseInt(limit);
-      const paginatedFriends = friendsWithMoods.slice(startIndex, endIndex);
+      const paginatedFriends = friendsWithMoodsAndPosts.slice(startIndex, endIndex);
       
       res.json({
         success: true,

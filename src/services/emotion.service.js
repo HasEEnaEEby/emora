@@ -259,7 +259,7 @@ class EmotionService {
         { $sort: { count: -1 } }
       ];
       
-      const results = await UnifiedEmotion.aggregate(pipeline);
+      const results = await Emotion.aggregate(pipeline);
       
       const totalEntries = results.reduce((sum, r) => sum + r.count, 0);
       const activeUsers = new Set();
@@ -302,7 +302,7 @@ class EmotionService {
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       // Get all emotions from today
-      const todayEmotions = await UnifiedEmotion.find({
+      const todayEmotions = await Emotion.find({
         $or: [
           { timestamp: { $gte: today, $lt: tomorrow } },
           { createdAt: { $gte: today, $lt: tomorrow } }
@@ -369,7 +369,7 @@ class EmotionService {
    */
   async getUserEmotionHistory(userId, limit = 50, offset = 0) {
     try {
-      const emotions = await UnifiedEmotion.find({ userId })
+      const emotions = await Emotion.find({ userId })
         .sort({ timestamp: -1, createdAt: -1 })
         .limit(limit)
         .skip(offset)
@@ -400,7 +400,7 @@ class EmotionService {
     try {
       const timeRange = this.getTimeRange(timeframe);
       
-      const emotions = await UnifiedEmotion.find({
+      const emotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -600,7 +600,7 @@ class EmotionService {
       if (!currentEmotion.userId) return;
       
       // Find the last emotion for this user
-      const lastEmotion = await UnifiedEmotion
+      const lastEmotion = await Emotion
         .findOne({ 
           userId: currentEmotion.userId,
           _id: { $ne: currentEmotion._id }
@@ -769,7 +769,7 @@ class EmotionService {
         { $sort: { count: -1 } }
       ];
       
-      const results = await UnifiedEmotion.aggregate(pipeline);
+      const results = await Emotion.aggregate(pipeline);
       
       const totalEntries = results.reduce((sum, r) => sum + r.count, 0);
       const activeUsers = new Set();
@@ -805,7 +805,7 @@ class EmotionService {
   async getGlobalEmotionHeatmap(bounds, timeframe = '24h') {
     try {
       const timeRange = this.getTimeRange(timeframe);
-      const heatmapData = await UnifiedEmotion.getGlobalEmotionHeatmap(bounds, timeRange);
+      const heatmapData = await Emotion.getGlobalEmotionHeatmap(bounds, timeRange);
       
       // Process and enhance heatmap data
       const processedData = heatmapData.map(point => ({
@@ -845,7 +845,7 @@ class EmotionService {
       }
       
       const timeRange = this.getTimeRange(timeframe);
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -1228,7 +1228,7 @@ class EmotionService {
       const timeRange = this.getTimeRange(timeframe);
       
       // Fetch real emotion data
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -1276,7 +1276,7 @@ class EmotionService {
       
       const timeRange = this.getTimeRange(timeframe);
       
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -1306,7 +1306,7 @@ class EmotionService {
       
       const timeRange = this.getTimeRange(timeframe);
       
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -1336,7 +1336,7 @@ class EmotionService {
       
       const timeRange = this.getTimeRange(timeframe);
       
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },
@@ -1366,7 +1366,7 @@ class EmotionService {
       
       const timeRange = this.getTimeRange(timeframe);
       
-      const userEmotions = await UnifiedEmotion.find({
+      const userEmotions = await Emotion.find({
         userId,
         $or: [
           { timestamp: { $gte: timeRange.start, $lte: timeRange.end } },

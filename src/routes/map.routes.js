@@ -226,6 +226,7 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ✅ FIXED: Use ONLY the insight controller routes - NO DUPLICATES
 // GET /api/map/insights - Get AI-powered region insights
 router.get('/insights', insightController.getRegionInsights);
 
@@ -395,92 +396,6 @@ router.post('/submit-emotion', async (req, res) => {
   }
 });
 
-// GET /api/map/insights - Get AI insights and predictions
-router.get('/insights', async (req, res) => {
-  try {
-    const {
-      region,
-      country,
-      city,
-      days = 7,
-      coreEmotion
-    } = req.query;
-
-    const filters = {
-      privacy: 'public'
-    };
-
-    // Add location filters
-    if (region) filters['location.region'] = { $regex: region, $options: 'i' };
-    if (country) filters['location.country'] = { $regex: country, $options: 'i' };
-    if (city) filters['location.city'] = { $regex: city, $options: 'i' };
-    if (coreEmotion) filters.coreEmotion = coreEmotion;
-
-    // Add time filter
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(days));
-    filters.createdAt = { $gte: startDate };
-
-    // Get emotion data for analysis
-    const emotions = await Emotion.find(filters).sort({ createdAt: -1 }).limit(1000);
-
-    // Calculate insights
-    const insights = {
-      totalEmotions: emotions.length,
-      dominantEmotion: null,
-      avgIntensity: 0,
-      trend: 'stable',
-      predictions: [],
-      recommendations: []
-    };
-
-    if (emotions.length > 0) {
-      // Calculate dominant emotion
-      const emotionCounts = {};
-      emotions.forEach(emotion => {
-        emotionCounts[emotion.coreEmotion] = (emotionCounts[emotion.coreEmotion] || 0) + 1;
-      });
-      
-      const dominantEmotion = Object.entries(emotionCounts)
-        .sort(([,a], [,b]) => b - a)[0][0];
-      
-      insights.dominantEmotion = dominantEmotion;
-      insights.avgIntensity = emotions.reduce((sum, e) => sum + e.intensity, 0) / emotions.length;
-
-      // Simple trend analysis
-      const recentEmotions = emotions.slice(0, Math.floor(emotions.length / 2));
-      const olderEmotions = emotions.slice(Math.floor(emotions.length / 2));
-      
-      const recentAvg = recentEmotions.reduce((sum, e) => sum + e.intensity, 0) / recentEmotions.length;
-      const olderAvg = olderEmotions.reduce((sum, e) => sum + e.intensity, 0) / olderEmotions.length;
-      
-      if (recentAvg > olderAvg + 0.5) insights.trend = 'increasing';
-      else if (recentAvg < olderAvg - 0.5) insights.trend = 'decreasing';
-      else insights.trend = 'stable';
-
-      // Generate recommendations
-      if (insights.dominantEmotion === 'fear' || insights.dominantEmotion === 'sadness') {
-        insights.recommendations.push('Consider activities that promote joy and trust');
-      } else if (insights.dominantEmotion === 'joy' || insights.dominantEmotion === 'trust') {
-        insights.recommendations.push('Great emotional state! Consider sharing positive experiences');
-      }
-    }
-
-    res.json({
-      success: true,
-      data: insights,
-      filters: { region, country, city, days, coreEmotion }
-    });
-
-  } catch (error) {
-    console.error('Error fetching insights:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch insights'
-    });
-  }
-});
-
 // GET /api/map/test-region - Test region matching
 router.get('/test-region', async (req, res) => {
   const { region } = req.query;
@@ -495,14 +410,17 @@ router.get('/test-region', async (req, res) => {
   try {
     console.log(`🔍 Testing region: "${region}"`);
     
+    // ✅ SAFE: Clean region parameter
+    const cleanRegion = String(region).trim();
+    
     // Test different matching strategies
     const queries = [
-      { 'location.country': { $regex: region, $options: 'i' } },
-      { 'location.city': { $regex: region, $options: 'i' } },
-      { 'location.country': { $regex: region.split(',')[1]?.trim(), $options: 'i' } },
-      { 'location.city': { $regex: region.split(',')[0]?.trim(), $options: 'i' } },
-      { 'location.country': { $regex: region.replace(/^.*,\s*/, ''), $options: 'i' } },
-      { 'location.city': { $regex: region.replace(/,\s*.*$/, ''), $options: 'i' } }
+      { 'location.country': { $regex: cleanRegion, $options: 'i' } },
+      { 'location.city': { $regex: cleanRegion, $options: 'i' } },
+      { 'location.country': { $regex: cleanRegion.split(',')[1]?.trim() || '', $options: 'i' } },
+      { 'location.city': { $regex: cleanRegion.split(',')[0]?.trim() || '', $options: 'i' } },
+      { 'location.country': { $regex: cleanRegion.replace(/^.*,\s*/, ''), $options: 'i' } },
+      { 'location.city': { $regex: cleanRegion.replace(/,\s*.*$/, ''), $options: 'i' } }
     ];
 
     const results = [];
@@ -540,7 +458,7 @@ router.get('/test-region', async (req, res) => {
 
     res.json({
       success: true,
-      testRegion: region,
+      testRegion: cleanRegion,
       results,
       availableRegions: allRegions.map(r => ({
         city: r._id.city,
@@ -558,4 +476,4 @@ router.get('/test-region', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

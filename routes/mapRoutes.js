@@ -142,475 +142,70 @@ router.get('/emotion-data', async (req, res) => {
 });
 
 /**
- * GET /api/map/emotion-clusters
- * Fetch clustered emotion data for map visualization
- */
-router.get('/emotion-clusters', async (req, res) => {
-  try {
-    const {
-      coreEmotion,
-      country,
-      region,
-      city,
-      startDate,
-      endDate,
-      minIntensity,
-      limit = 100
-    } = req.query;
-
-    // Build filter query
-    const filter = {};
-    
-    if (coreEmotion) filter.coreEmotion = coreEmotion;
-    if (country) filter.country = country;
-    if (region) filter.region = region;
-    if (city) filter.city = city;
-    if (minIntensity) filter.intensity = { $gte: parseFloat(minIntensity) };
-    
-    if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
-    }
-
-    // Advanced clustering algorithm
-    const pipeline = [
-      { $match: filter },
-      {
-        $group: {
-          _id: {
-            clusterId: {
-              $concat: [
-                { $ifNull: ["$city", "unknown"] },
-                "-",
-                "$coreEmotion",
-                "-",
-                { $dateToString: { format: "%Y-%m-%dT%H", date: "$timestamp" } }
-              ]
-            }
-          },
-          center: {
-            latitude: { $avg: "$latitude" },
-            longitude: { $avg: "$longitude" }
-          },
-          coreEmotion: { $first: "$coreEmotion" },
-          emotionTypes: { $addToSet: "$emotionTypes" },
-          count: { $sum: 1 },
-          avgIntensity: { $avg: "$intensity" },
-          city: { $first: "$city" },
-          country: { $first: "$country" },
-          latestTimestamp: { $max: "$timestamp" },
-          size: { $sum: 1 } // Size based on count
-        }
-      },
-      {
-        $project: {
-          clusterId: "$_id.clusterId",
-          center: 1,
-          coreEmotion: 1,
-          emotionTypes: { $reduce: { input: "$emotionTypes", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } },
-          count: 1,
-          avgIntensity: { $round: ["$avgIntensity", 2] },
-          city: 1,
-          country: 1,
-          latestTimestamp: 1,
-          size: { $multiply: ["$size", 2] } // Scale size for visualization
-        }
-      },
-      { $sort: { count: -1 } },
-      { $limit: parseInt(limit) }
-    ];
-
-    const clusters = await Emotion.aggregate(pipeline);
-
-    // Transform to match frontend model
-    const transformedClusters = clusters.map(cluster => ({
-      clusterId: cluster.clusterId,
-      coordinates: [cluster.center.longitude, cluster.center.latitude],
-      coreEmotion: cluster.coreEmotion,
-      emotionTypes: [...new Set(cluster.emotionTypes)],
-      count: cluster.count,
-      avgIntensity: cluster.avgIntensity,
-      city: cluster.city,
-      country: cluster.country,
-      latestTimestamp: cluster.latestTimestamp,
-      size: cluster.size
-    }));
-
-    res.json({
-      success: true,
-      data: transformedClusters,
-      count: transformedClusters.length,
-      filters: req.query
-    });
-
-  } catch (error) {
-    console.error('Error fetching emotion clusters:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch emotion clusters',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/map/stats
- * Fetch global emotion statistics
- */
-router.get('/stats', async (req, res) => {
-  try {
-    const {
-      coreEmotion,
-      country,
-      region,
-      city,
-      startDate,
-      endDate
-    } = req.query;
-
-    // Build filter query
-    const filter = {};
-    
-    if (coreEmotion) filter.coreEmotion = coreEmotion;
-    if (country) filter.country = country;
-    if (region) filter.region = region;
-    if (city) filter.city = city;
-    
-    if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
-    }
-
-    // Get global stats
-    const globalStats = await Emotion.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: null,
-          totalEmotions: { $sum: 1 },
-          avgIntensity: { $avg: "$intensity" },
-          coreEmotionStats: {
-            $push: {
-              coreEmotion: "$coreEmotion",
-              intensity: "$intensity"
-            }
-          }
-        }
-      }
-    ]);
-
-    // Get core emotion breakdown
-    const coreEmotionBreakdown = await Emotion.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: "$coreEmotion",
-          count: { $sum: 1 },
-          avgIntensity: { $avg: "$intensity" }
-        }
-      },
-      {
-        $project: {
-          coreEmotion: "$_id",
-          count: 1,
-          avgIntensity: { $round: ["$avgIntensity", 2] }
-        }
-      },
-      { $sort: { count: -1 } }
-    ]);
-
-    // Transform to match frontend model
-    const stats = globalStats[0] || { totalEmotions: 0, avgIntensity: 0, coreEmotionStats: [] };
-    
-    const coreEmotionStatsMap = {};
-    coreEmotionBreakdown.forEach(stat => {
-      coreEmotionStatsMap[stat.coreEmotion] = {
-        coreEmotion: stat.coreEmotion,
-        count: stat.count,
-        avgIntensity: stat.avgIntensity
-      };
-    });
-
-    const response = {
-      totalEmotions: stats.totalEmotions,
-      avgIntensity: Math.round(stats.avgIntensity * 100) / 100,
-      coreEmotionStats: coreEmotionStatsMap,
-      lastUpdated: new Date()
-    };
-
-    res.json({
-      success: true,
-      data: response,
-      filters: req.query
-    });
-
-  } catch (error) {
-    console.error('Error fetching global stats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch global stats',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/map/emotion-trends
- * Fetch emotion trends over time
- */
-router.get('/emotion-trends', async (req, res) => {
-  try {
-    const {
-      coreEmotion,
-      country,
-      region,
-      city,
-      startDate,
-      endDate,
-      timeGroup = 'day' // day, week, month
-    } = req.query;
-
-    // Build filter query
-    const filter = {};
-    
-    if (coreEmotion) filter.coreEmotion = coreEmotion;
-    if (country) filter.country = country;
-    if (region) filter.region = region;
-    if (city) filter.city = city;
-    
-    if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
-    }
-
-    // Determine date format based on timeGroup
-    let dateFormat;
-    switch (timeGroup) {
-      case 'hour':
-        dateFormat = "%Y-%m-%dT%H";
-        break;
-      case 'week':
-        dateFormat = "%Y-W%U";
-        break;
-      case 'month':
-        dateFormat = "%Y-%m";
-        break;
-      default: // day
-        dateFormat = "%Y-%m-%d";
-    }
-
-    const trends = await Emotion.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: {
-            date: { $dateToString: { format: dateFormat, date: "$timestamp" } },
-            coreEmotion: "$coreEmotion",
-            city: "$city",
-            country: "$country"
-          },
-          count: { $sum: 1 },
-          avgIntensity: { $avg: "$intensity" }
-        }
-      },
-      {
-        $project: {
-          date: "$_id.date",
-          coreEmotion: "$_id.coreEmotion",
-          city: "$_id.city",
-          country: "$_id.country",
-          count: 1,
-          avgIntensity: { $round: ["$avgIntensity", 2] }
-        }
-      },
-      { $sort: { date: 1 } }
-    ]);
-
-    res.json({
-      success: true,
-      data: trends,
-      count: trends.length,
-      timeGroup,
-      filters: req.query
-    });
-
-  } catch (error) {
-    console.error('Error fetching emotion trends:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch emotion trends',
-      details: error.message
-    });
-  }
-});
-
-/**
- * POST /api/map/submit-emotion
- * Submit user emotion to the global map
- */
-router.post('/submit-emotion', authenticateToken, validateEmotionData, async (req, res) => {
-  try {
-    const {
-      coordinates,
-      coreEmotion,
-      emotionTypes,
-      intensity,
-      city,
-      country,
-      context
-    } = req.body;
-
-    const [longitude, latitude] = coordinates;
-
-    // Create new emotion entry
-    const emotion = new Emotion({
-      userId: req.user.id,
-      latitude,
-      longitude,
-      coreEmotion,
-      emotionTypes: Array.isArray(emotionTypes) ? emotionTypes : [emotionTypes],
-      intensity: parseFloat(intensity),
-      city,
-      country,
-      context,
-      timestamp: new Date()
-    });
-
-    await emotion.save();
-
-    // Emit real-time update via WebSocket
-    if (req.app.get('io')) {
-      req.app.get('io').emit('newEmotion', {
-        type: 'newEmotion',
-        data: {
-          id: emotion._id,
-          coordinates: [longitude, latitude],
-          coreEmotion,
-          emotionTypes: emotion.emotionTypes,
-          intensity: emotion.intensity,
-          city,
-          country,
-          timestamp: emotion.timestamp
-        }
-      });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Emotion submitted successfully',
-      data: {
-        id: emotion._id,
-        timestamp: emotion.timestamp
-      }
-    });
-
-  } catch (error) {
-    console.error('Error submitting emotion:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to submit emotion',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/map/heatmap
- * Get heatmap data for visualization
- */
-router.get('/heatmap', async (req, res) => {
-  try {
-    const {
-      coreEmotion,
-      startDate,
-      endDate,
-      resolution = 0.1 // Grid resolution in degrees
-    } = req.query;
-
-    // Build filter query
-    const filter = {};
-    
-    if (coreEmotion) filter.coreEmotion = coreEmotion;
-    
-    if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
-    }
-
-    // Generate heatmap data using grid aggregation
-    const heatmapData = await Emotion.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: {
-            lat: { $round: [{ $divide: ["$latitude", resolution] }, 0] },
-            lng: { $round: [{ $divide: ["$longitude", resolution] }, 0] }
-          },
-          count: { $sum: 1 },
-          avgIntensity: { $avg: "$intensity" },
-          dominantEmotion: { $first: "$coreEmotion" }
-        }
-      },
-      {
-        $project: {
-          coordinates: [
-            { $multiply: ["$_id.lng", resolution] },
-            { $multiply: ["$_id.lat", resolution] }
-          ],
-          count: 1,
-          avgIntensity: { $round: ["$avgIntensity", 2] },
-          dominantEmotion: 1
-        }
-      }
-    ]);
-
-    res.json({
-      success: true,
-      data: heatmapData,
-      count: heatmapData.length,
-      resolution: parseFloat(resolution),
-      filters: req.query
-    });
-
-  } catch (error) {
-    console.error('Error fetching heatmap data:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch heatmap data',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/map/insights
+ * GET /api/map/insights - FIXED VERSION
  * Get AI-generated insights for a region
  */
 router.get('/insights', async (req, res) => {
   try {
-    const {
-      region,
-      coreEmotion,
-      startDate,
-      endDate
-    } = req.query;
+    let { region, coreEmotion, startDate, endDate } = req.query;
 
-    // Build filter query
-    const filter = {};
-    
-    if (region) {
-      filter.$or = [
-        { city: { $regex: region, $options: 'i' } },
-        { country: { $regex: region, $options: 'i' } }
-      ];
+    // ✅ CRITICAL FIX: Ensure region is a string
+    if (!region) {
+      return res.status(400).json({
+        success: false,
+        error: 'Region parameter is required'
+      });
     }
-    
+
+    // ✅ ENSURE IT'S A STRING AND CLEAN IT
+    region = String(region).trim();
+    if (region.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Region parameter cannot be empty'
+      });
+    }
+
+    console.log(`🔍 Searching for region: "${region}" (type: ${typeof region})`);
+
+    // Build filter query with SAFE regex (robust version)
+    const filter = {};
+    const regionParts = region.split(',');
+    const cityPart = regionParts[0]?.trim();
+    const countryPart = regionParts[1]?.trim();
+    const orQuery = [];
+    // Always add the full region string
+    if (region && region.length > 0) {
+      orQuery.push({ city: { $regex: region, $options: 'i' } });
+      orQuery.push({ country: { $regex: region, $options: 'i' } });
+    }
+    // Add city part if present and non-empty
+    if (cityPart && cityPart.length > 0 && cityPart !== region) {
+      orQuery.push({ city: { $regex: cityPart, $options: 'i' } });
+      orQuery.push({ country: { $regex: cityPart, $options: 'i' } });
+    }
+    // Add country part if present and non-empty
+    if (countryPart && countryPart.length > 0 && countryPart !== region) {
+      orQuery.push({ country: { $regex: countryPart, $options: 'i' } });
+    }
+    // Add just country/city if region has a comma
+    if (region.includes(',')) {
+      const justCountry = region.replace(/^.*?,\s*/, '');
+      if (justCountry && justCountry.length > 0 && justCountry !== region) {
+        orQuery.push({ country: { $regex: justCountry, $options: 'i' } });
+      }
+      const justCity = region.replace(/,\s*.*$/, '');
+      if (justCity && justCity.length > 0 && justCity !== region) {
+        orQuery.push({ city: { $regex: justCity, $options: 'i' } });
+      }
+    }
+    // Fallback: if orQuery is empty, just match public
+    if (orQuery.length === 0) {
+      orQuery.push({ country: { $exists: true } });
+    }
+    filter.$or = orQuery;
+
     if (coreEmotion) filter.coreEmotion = coreEmotion;
-    
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
@@ -644,29 +239,24 @@ router.get('/insights', async (req, res) => {
     if (regionalStats.length === 0) {
       return res.json({
         success: true,
-        insight: `No emotion data available for ${region || 'this region'}.`
+        insight: `No emotion data available for ${region}.`
       });
     }
 
     const stats = regionalStats[0];
-    
     // Calculate dominant emotion
     const emotionCounts = {};
     stats.emotionBreakdown.forEach(emotion => {
       emotionCounts[emotion.coreEmotion] = (emotionCounts[emotion.coreEmotion] || 0) + 1;
     });
-    
     const dominantEmotion = Object.entries(emotionCounts)
       .sort(([,a], [,b]) => b - a)[0][0];
-
     // Calculate recent trend
     const recentEmotions = stats.recentTrend
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(0, 10);
-    
     const recentAvgIntensity = recentEmotions.reduce((sum, e) => sum + e.intensity, 0) / recentEmotions.length;
     const trendDirection = recentAvgIntensity > stats.avgIntensity ? 'increasing' : 'decreasing';
-
     // Generate AI insight
     const insight = generateRegionalInsight({
       region,
@@ -676,7 +266,6 @@ router.get('/insights', async (req, res) => {
       trendDirection,
       recentAvgIntensity: Math.round(recentAvgIntensity * 100) / 100
     });
-
     res.json({
       success: true,
       insight,
@@ -689,73 +278,11 @@ router.get('/insights', async (req, res) => {
         recentAvgIntensity
       }
     });
-
   } catch (error) {
     console.error('Error generating insights:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate insights',
-      details: error.message
-    });
-  }
-});
-
-/**
- * GET /api/map/predictions
- * Get emotion predictions for a region
- */
-router.get('/predictions', async (req, res) => {
-  try {
-    const {
-      region,
-      hoursAhead = 24
-    } = req.query;
-
-    // Build filter query for historical data
-    const filter = {};
-    
-    if (region) {
-      filter.$or = [
-        { city: { $regex: region, $options: 'i' } },
-        { country: { $regex: region, $options: 'i' } }
-      ];
-    }
-
-    // Get historical data for prediction
-    const historicalData = await Emotion.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: {
-            hour: { $hour: "$timestamp" },
-            dayOfWeek: { $dayOfWeek: "$timestamp" }
-          },
-          avgIntensity: { $avg: "$intensity" },
-          emotionCount: { $sum: 1 },
-          dominantEmotion: { $first: "$coreEmotion" }
-        }
-      },
-      { $sort: { "_id.hour": 1, "_id.dayOfWeek": 1 } }
-    ]);
-
-    // Simple prediction algorithm (can be enhanced with ML)
-    const predictions = generatePredictions(historicalData, parseInt(hoursAhead));
-
-    res.json({
-      success: true,
-      data: {
-        region,
-        predictions,
-        hoursAhead: parseInt(hoursAhead),
-        confidence: 0.75 // Placeholder confidence score
-      }
-    });
-
-  } catch (error) {
-    console.error('Error generating predictions:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate predictions',
       details: error.message
     });
   }
@@ -796,43 +323,4 @@ function getEmotionContext(emotion, intensity) {
   return contexts[emotion] || 'mixed emotional states';
 }
 
-/**
- * Generate predictions based on historical data
- */
-function generatePredictions(historicalData, hoursAhead) {
-  const predictions = [];
-  const now = new Date();
-  
-  for (let i = 1; i <= hoursAhead; i++) {
-    const futureTime = new Date(now.getTime() + (i * 60 * 60 * 1000));
-    const hour = futureTime.getHours();
-    const dayOfWeek = futureTime.getDay();
-    
-    // Find matching historical data
-    const matchingData = historicalData.find(data => 
-      data._id.hour === hour && data._id.dayOfWeek === dayOfWeek
-    );
-    
-    if (matchingData) {
-      predictions.push({
-        timestamp: futureTime.toISOString(),
-        predictedIntensity: Math.round(matchingData.avgIntensity * 100) / 100,
-        predictedEmotion: matchingData.dominantEmotion,
-        confidence: 0.8
-      });
-    } else {
-      // Fallback prediction
-      const avgIntensity = historicalData.reduce((sum, data) => sum + data.avgIntensity, 0) / historicalData.length;
-      predictions.push({
-        timestamp: futureTime.toISOString(),
-        predictedIntensity: Math.round(avgIntensity * 100) / 100,
-        predictedEmotion: 'neutral',
-        confidence: 0.5
-      });
-    }
-  }
-  
-  return predictions;
-}
-
-module.exports = router; 
+module.exports = router;

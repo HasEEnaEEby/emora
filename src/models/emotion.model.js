@@ -17,7 +17,7 @@ const emotionSchema = new mongoose.Schema({
     enum: [
       // Positive emotions
       'joy', 'happiness', 'excitement', 'love', 'gratitude', 'contentment', 
-      'pride', 'relief', 'hope', 'enthusiasm', 'serenity', 'bliss',
+      'pride', 'relief', 'hope', 'enthusiasm', 'serenity', 'bliss','surprise',
       
       // Negative emotions
       'sadness', 'anger', 'fear', 'anxiety', 'frustration', 'disappointment', 
@@ -44,7 +44,6 @@ const emotionSchema = new mongoose.Schema({
     index: true
   },
   
-  // . NEW: Clustering for map aggregation
   clusterId: {
     type: String,
     index: true

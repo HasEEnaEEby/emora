@@ -26,6 +26,7 @@ import spotifyRoutes from './spotify.routes.js';
 import userRoutes from './user.routes.js';
 import userProfileRoutes from './user/profile.routes.js';
 import ventRoutes from './vent.routes.js';
+import messageRoutes from './messages.routes.js';
 
 // User routes are imported above with other route modules
 
@@ -207,6 +208,7 @@ router.use('/api/friends', friendRoutes);
 router.use('/api/emotion-stories', emotionStoryRoutes);
 router.use('/api/vents', ventRoutes);
 router.use('/api/comfort-reactions', comfortReactionRoutes);
+router.use('/api/messages', messageRoutes);
 
 // Catch-all for undefined routes
 router.use('*', (req, res) => {

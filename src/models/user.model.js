@@ -24,14 +24,14 @@ const userSchema = new mongoose.Schema({
   
   email: {
     type: String,
-    required: false,  // . FIXED: Make email optional
+    required: false,  
     trim: true,
     lowercase: true,
     unique: true,
-    sparse: true,     // . FIXED: Allow unique nullable values
+    sparse: true,     
     validate: {
       validator: function(v) {
-        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  // . FIXED: Handle null/undefined
+        return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);  
       },
       message: 'Please enter a valid email address'
     }
