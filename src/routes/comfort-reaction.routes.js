@@ -6,7 +6,6 @@ import { validateRequest } from '../middleware/validation.middleware.js';
 
 const router = express.Router();
 
-// Apply auth middleware to all routes
 router.use(authMiddleware);
 
 // Comfort reaction routes

@@ -1,4 +1,3 @@
-// src/server.js - COMPLETE FIXED VERSION WITH PROPER ROUTES
 import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
